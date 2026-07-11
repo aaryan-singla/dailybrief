@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DailyBrief Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f7f6f3;--surface:#fff;--border:#e8e5de;--text:#191817;--sub:#55524a;--muted:#8e8a7e;--accent:#9b1c2e;--accent-bg:#fdf0f2;--sans:'Inter',-apple-system,sans-serif;--r:8px;--shadow:0 1px 3px rgba(0,0,0,.08)}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.bar{background:var(--surface);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.logo{font-size:17px;font-weight:700}.logo span{color:var(--accent)}
+.logout{font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);padding:5px 11px;border-radius:6px;cursor:pointer}
+.page{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+
+/* Login */
+#login-screen{max-width:360px;margin:12vh auto 0;text-align:center}
+#login-screen h1{font-size:22px;font-weight:700;margin-bottom:6px}
+#login-screen p{font-size:13px;color:var(--muted);margin-bottom:28px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;text-align:left}
+.field label{font-size:12px;font-weight:600;color:var(--sub)}
+.field input{padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans)}
+.field input:focus{border-color:var(--accent)}
+.btn{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.btn:hover{filter:brightness(1.08)}
+.err{font-size:13px;color:#b91c1c;text-align:center;margin-top:8px;display:none}
+
+/* Admin UI */
+#admin-screen{display:none}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.stat-val{font-size:28px;font-weight:700;margin-bottom:4px}
+.stat-lbl{font-size:12px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+.panel h2{font-size:15px;font-weight:700;margin-bottom:16px}
+.panel p{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:14px}
+
+/* Upload */
+.drop{border:1.5px dashed var(--border);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:.2s}
+.drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-bg)}
+.drop input{display:none}
+.drop-icon{font-size:28px;margin-bottom:10px}
+.drop-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--muted)}
+.drop-list{margin-top:12px;font-size:12px;color:var(--sub)}
+
+/* Progress */
+.prog-wrap{background:var(--border);border-radius:99px;height:4px;margin:12px 0;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:99px;width:0;transition:width .4s}
+.prog-step{font-size:13px;color:var(--sub);min-height:20px}
+.prog-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.proc-log{font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace;background:var(--bg);padding:8px 12px;border-radius:6px;max-height:80px;overflow-y:auto}
+
+/* Editions table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.del-btn{font-size:11px;color:#b91c1c;background:none;border:1px solid #fca5a5;padding:3px 8px;border-radius:4px;cursor:pointer}
+.del-btn:hover{background:#fef2f2}
+.badge-count{display:inline-block;background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:#191817;color:#f2efe8;padding:9px 18px;border-radius:99px;font-size:13px;z-index:900;opacity:0;transition:.22s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="logo">Daily<span>Brief</span> <span style="font-size:11px;font-weight:500;color:var(--muted);margin-left:6px">Admin</span></div>
+  <button class="logout" id="logout-btn" onclick="logout()" style="display:none">Log out</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="page" style="max-width:360px">
+  <h1>Admin Login</h1>
+  <p>Enter your admin password to access the DailyBrief control panel.</p>
+  <div class="field"><label>Password</label><input type="password" id="pw-inp" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')login()"/></div>
+  <button class="btn" onclick="login()">Sign in</button>
+  <div class="err" id="login-err">Incorrect password</div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen" class="page">
+  <div class="grid">
+    <div class="stat"><div class="stat-val" id="stat-editions">—</div><div class="stat-lbl">Total Editions</div></div>
+    <div class="stat"><div class="stat-val" id="stat-articles">—</div><div class="stat-lbl">Total Articles</div></div>
+    <div class="stat"><div class="stat-val" id="stat-today">—</div><div class="stat-lbl">Today's Articles</div></div>
+  </div>
+
+  <!-- Upload panel -->
+  <div class="panel">
+    <h2>Upload Today's PDFs</h2>
+    <p>Drop 1-3 newspaper PDFs. Processing uses your Gemini key and typically takes 4-8 minutes per newspaper. Articles are saved directly to the database and immediately visible to users.</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="gemini-inp" placeholder="Gemini API key (AQ.Ab… or AIza…)" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans)"/>
+      <button onclick="saveGKey()" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save key</button>
+    </div>
+
+    <div class="drop" id="adrop">
+      <input type="file" id="afile" accept=".pdf" multiple/>
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop newspaper PDFs here</div>
+      <div class="drop-sub">or click to browse — multiple files accepted</div>
+      <div class="drop-list" id="file-list"></div>
+    </div>
+
+    <div id="proc-area" style="display:none;margin-top:16px">
+      <div class="prog-step" id="proc-step">Starting…</div>
+      <div class="prog-wrap"><div class="prog-fill" id="proc-fill"></div></div>
+      <div class="prog-sub" id="proc-sub"></div>
+      <div class="proc-log" id="proc-log"></div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button id="process-btn" onclick="startProcessing()" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer" disabled>Process PDFs</button>
+      <span id="proc-status" style="font-size:12px;color:var(--muted);align-self:center"></span>
+    </div>
+  </div>
+
+  <!-- Editions table -->
+  <div class="panel">
+    <h2>Published Editions</h2>
+    <div id="editions-table"><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const { createClient } = supabase;
+const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey);
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function login() {
+  const pw = document.getElementById('pw-inp').value;
+  if (pw === DAILYBRIEF_CONFIG.adminPassword) {
+    sessionStorage.setItem('db_admin', '1');
+    showAdmin();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function logout() { sessionStorage.removeItem('db_admin'); location.reload(); }
+document.getElementById('pw-inp').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+function showAdmin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'block';
+  const gk = localStorage.getItem('db_admin_gemini') || '';
+  document.getElementById('gemini-inp').value = gk;
+  loadStats();
+  loadEditions();
+}
+
+if (sessionStorage.getItem('db_admin')) showAdmin();
+
+function saveGKey() {
+  const v = document.getElementById('gemini-inp').value.trim();
+  if (!v || v.length < 20) { showToast('Paste a valid key'); return; }
+  localStorage.setItem('db_admin_gemini', v); showToast('Key saved');
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const today = new Date().toISOString().slice(0,10);
+  const { count: eCnt } = await sb.from('editions').select('*', {count:'exact',head:true});
+  const { count: aCnt } = await sb.from('articles').select('*', {count:'exact',head:true});
+  const { count: tCnt } = await sb.from('articles').select('*', {count:'exact',head:true}).eq('date_key',today);
+  document.getElementById('stat-editions').textContent = eCnt ?? '—';
+  document.getElementById('stat-articles').textContent = aCnt ?? '—';
+  document.getElementById('stat-today').textContent = tCnt ?? '—';
+}
+
+async function loadEditions() {
+  const { data } = await sb.from('editions').select('*').order('date_key',{ascending:false}).limit(20);
+  if (!data?.length) { document.getElementById('editions-table').innerHTML = '<p style="font-size:13px;color:var(--muted)">No editions yet.</p>'; return; }
+  document.getElementById('editions-table').innerHTML = `<table>
+    <tr><th>Date</th><th>Articles</th><th>Sources</th><th>Published</th><th></th></tr>
+    ${data.map(e => `<tr>
+      <td><strong>${e.display_date || e.date_key}</strong></td>
+      <td><span class="badge-count">${e.article_count}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${(e.sources||[]).join(', ')}</td>
+      <td style="font-size:12px;color:var(--muted)">${new Date(e.published_at).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})}</td>
+      <td><button class="del-btn" onclick="deleteEdition('${e.id}','${e.date_key}')">Delete</button></td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+async function deleteEdition(id, dateKey) {
+  if (!confirm(`Delete edition ${dateKey}? This removes all articles too.`)) return;
+  await sb.from('editions').delete().eq('id', id);
+  showToast('Edition deleted');
+  loadStats(); loadEditions();
+}
+
+// ── File handling ─────────────────────────────────────────────────────────────
+let selectedFiles = [];
+const adrop = document.getElementById('adrop');
+const afile = document.getElementById('afile');
+adrop.addEventListener('click', () => afile.click());
+adrop.addEventListener('dragover', e => { e.preventDefault(); adrop.classList.add('drag'); });
+adrop.addEventListener('dragleave', () => adrop.classList.remove('drag'));
+adrop.addEventListener('drop', e => {
+  e.preventDefault(); adrop.classList.remove('drag');
+  selectedFiles = [...e.dataTransfer.files].filter(f => f.type==='application/pdf');
+  updateFileList();
+});
+afile.addEventListener('change', () => { selectedFiles = [...afile.files]; updateFileList(); });
+
+function updateFileList() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = selectedFiles.map(f => `📄 ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`).join('<br>');
+  document.getElementById('process-btn').disabled = selectedFiles.length === 0;
+  document.getElementById('proc-status').textContent = selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length>1?'s':''} selected` : '';
+}
+
+// ── In-browser processing pipeline (same as dailybrief.html) ─────────────────
+const GEMINI_MODELS = ['gemini-2.5-flash-lite-latest','gemini-3.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash'];
+let geminiModel = null;
+
+function log(msg) {
+  const el = document.getElementById('proc-log');
+  el.innerHTML += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function setProc(step, pct, sub='') {
+  document.getElementById('proc-step').textContent = step;
+  document.getElementById('proc-fill').style.width = pct + '%';
+  document.getElementById('proc-sub').textContent = sub;
+}
+
+async function callGemini(systemPrompt, parts, asJson=true) {
+  const gkey = localStorage.getItem('db_admin_gemini') || '';
+  if (!gkey) throw new Error('No Gemini key set');
+
+  if (!geminiModel) {
+    for (const m of GEMINI_MODELS) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${gkey}`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ contents:[{role:'user',parts:[{text:'Hi'}]}], generationConfig:{maxOutputTokens:5} })
+        });
+        if (r.ok) { geminiModel = m; log(`Using model: ${m}`); break; }
+      } catch {}
+    }
+    if (!geminiModel) throw new Error('No Gemini model available');
+  }
+
+  const body = {
+    contents: [{ role:'user', parts }],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    generationConfig: { temperature:0.1, maxOutputTokens:65536, ...(asJson ? {responseMimeType:'application/json'} : {}) }
+  };
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${gkey}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    if (res.status===429) { await new Promise(r=>setTimeout(r,61000)); return callGemini(systemPrompt,parts,asJson); }
+    throw new Error(`Gemini error ${res.status}`);
+  }
+  const data = await res.json();
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!asJson) return text;
+  text = text.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/g,'').trim();
+  try { return JSON.parse(text); } catch {}
+  const s=text.indexOf('{'),e=text.lastIndexOf('}');
+  if(s!==-1&&e!==-1){try{return JSON.parse(text.slice(s,e+1));}catch{}}
+  const sa=text.indexOf('['),ea=text.lastIndexOf(']');
+  if(sa!==-1&&ea!==-1){try{return JSON.parse(text.slice(sa,ea+1));}catch{}}
+  return asJson ? {} : text;
+}
+
+async function pdfToImages(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const images = [];
+  for (let i=1;i<=pdf.numPages;i++) {
+    setProc(`Rendering page ${i} of ${pdf.numPages}…`, 5+Math.round((i/pdf.numPages)*18), file.name);
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({scale:1.5});
+    const c = document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    images.push(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+  }
+  return images;
+}
+
+const DISCOVER_SYSTEM = `List every relevant business article headline from these newspaper pages. Return JSON: {"date":"from masthead or empty","articles":[{"headline":"exact headline","byline":"author or empty","category":"MARKETS|ECONOMY|BANKING|POLICY|CORPORATE|TECHNOLOGY|AI|STARTUPS|GLOBAL|ENERGY|HEALTHCARE|AUTO|MFG|MA|OPINION|RBI"}]}. Skip ads, event promos, lifestyle, sports, crosswords. Include everything else.`;
+const ENRICH_SYSTEM = `Write executive briefs for these newspaper articles. Return JSON array: [{"importance":<1-5>,"brief":"150-200 word brief with all numbers and names","body":"complete article text verbatim"}]. Importance: 1=market-moving, 2=very important, 3=useful, 4=minor, 5=low.`;
+
+async function processOnePDF(file, allArticles, detectedDate) {
+  log(`\n── ${file.name} ──`);
+  const images = await pdfToImages(file);
+  const BATCH=5, OVERLAP=1;
+  const discovered=[], seen=new Set();
+  let date='';
+
+  for (let s=0;s<images.length;s+=(BATCH-OVERLAP)) {
+    const pages=images.slice(s,s+BATCH);
+    const pageNums=Array.from({length:pages.length},(_,i)=>s+i+1);
+    setProc(`Discovering articles… pages ${pageNums[0]}-${pageNums[pageNums.length-1]}`,24+Math.round((s/images.length)*20),`${discovered.length} found`);
+    const parts=[{text:`Scan pages ${pageNums.join(',')} of ${images.length} from ${file.name}.`},...pages.map(img=>({inlineData:{mimeType:'image/jpeg',data:img}}))];
+    const r = await callGemini(DISCOVER_SYSTEM, parts, true);
+    if(r?.date&&!date) date=r.date;
+    for(const a of (r?.articles||[])){
+      if(!a.headline||a.headline.length<6) continue;
+      const key=a.headline.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,50);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      discovered.push({...a,_start:s,_end:Math.min(s+BATCH,images.length)});
+    }
+    if(s+(BATCH-OVERLAP)<images.length) await new Promise(r=>setTimeout(r,2500));
+  }
+  log(`Discovery: ${discovered.length} articles found`);
+  if(!detectedDate.value&&date) detectedDate.value=date;
+
+  const ENRICH=3, totalG=Math.ceil(discovered.length/ENRICH);
+  for(let g=0;g<discovered.length;g+=ENRICH){
+    const group=discovered.slice(g,g+ENRICH);
+    const gn=Math.floor(g/ENRICH)+1;
+    setProc(`Enriching articles… group ${gn}/${totalG}`,45+Math.round((g/discovered.length)*45),`${allArticles.length} complete`);
+    const pageIdxs=[...new Set(group.flatMap(a=>Array.from({length:a._end-a._start},(_,i)=>a._start+i)))].slice(0,5);
+    const imgs=pageIdxs.map(i=>images[i]).filter(Boolean);
+    const list=group.map((a,i)=>`${i+1}. "${a.headline}"${a.byline?` by ${a.byline}`:''}`).join('\n');
+    const parts=[{text:`Enrich these ${group.length} articles from ${file.name}:\n${list}\nReturn array of ${group.length} objects.`},...imgs.map(img=>({inlineData:{mimeType:'image/jpeg',data:img}}))];
+    const res=await callGemini(ENRICH_SYSTEM,parts,true);
+    const arr=Array.isArray(res)?res:(res?.articles||[]);
+    for(let i=0;i<group.length;i++){
+      const r=arr[i]||{};
+      allArticles.push({headline:group[i].headline,byline:group[i].byline||'',category:group[i].category||'CORPORATE',importance:parseInt(r.importance)||3,brief:r.brief||'',body:r.body||'',source:file.name.replace('.pdf','')});
+    }
+    if(g+ENRICH<discovered.length) await new Promise(r=>setTimeout(r,2500));
+  }
+  log(`Enrichment done: ${discovered.length} articles`);
+}
+
+async function startProcessing() {
+  const gkey = localStorage.getItem('db_admin_gemini');
+  if(!gkey) { showToast('Set your Gemini key first'); return; }
+  if(!selectedFiles.length) { showToast('Select PDFs first'); return; }
+
+  document.getElementById('process-btn').disabled = true;
+  document.getElementById('proc-area').style.display = 'block';
+  document.getElementById('proc-log').innerHTML = '';
+  geminiModel = null;
+
+  const allArticles = [];
+  const detectedDate = {value:''};
+
+  try {
+    for(const file of selectedFiles) await processOnePDF(file, allArticles, detectedDate);
+
+    // Dedup
+    const seen=new Set(), deduped=[];
+    for(const a of allArticles){
+      const k=a.headline.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,50);
+      if(!seen.has(k)){seen.add(k);deduped.push(a);}
+    }
+    deduped.sort((a,b)=>(a.importance||3)-(b.importance||3));
+
+    // Date
+    let dateKey=new Date().toISOString().slice(0,10);
+    let displayDate='';
+    if(detectedDate.value){
+      for(const fmt of ['%d %B %Y','%B %d, %Y','%d %b %Y']){
+        // Simple parser
+        const m=detectedDate.value.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/)||detectedDate.value.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+        if(m){
+          const d=new Date(detectedDate.value);
+          if(!isNaN(d)){dateKey=d.toISOString().slice(0,10);displayDate=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});break;}
+        }
+      }
+    }
+    if(!displayDate) displayDate=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    setProc('Saving to database…',92,`${deduped.length} articles`);
+    log(`\nSaving ${deduped.length} articles to Supabase…`);
+
+    // Upsert edition
+    const {data:ed,error:edErr}=await sb.from('editions').upsert({date_key:dateKey,display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))},{onConflict:'date_key'}).select().single();
+    if(edErr) throw new Error('Edition save failed: '+edErr.message);
+    log(`Edition saved: ${dateKey}`);
+
+    // Delete old articles
+    await sb.from('articles').delete().eq('edition_id',ed.id);
+
+    // Insert articles in chunks
+    const CHUNK=50;
+    for(let i=0;i<deduped.length;i+=CHUNK){
+      const rows=deduped.slice(i,i+CHUNK).map(a=>({edition_id:ed.id,date_key:dateKey,...a}));
+      const {error}=await sb.from('articles').insert(rows);
+      if(error) log(`Warning: chunk ${i}-${i+CHUNK}: ${error.message}`);
+      setProc('Saving articles…',93+Math.round((i/deduped.length)*5),`${Math.min(i+CHUNK,deduped.length)}/${deduped.length} saved`);
+    }
+
+    await sb.from('editions').update({article_count:deduped.length}).eq('id',ed.id);
+    setProc('Done!',100,`${deduped.length} articles published`);
+    log(`\n✓ Complete! ${deduped.length} articles for ${displayDate}`);
+    showToast(`Published — ${deduped.length} articles`);
+    loadStats(); loadEditions();
+    selectedFiles=[];
+    updateFileList();
+
+  } catch(err) {
+    setProc('Error',0,'');
+    log(`ERROR: ${err.message}`);
+    showToast('Error: '+err.message);
+  } finally {
+    document.getElementById('process-btn').disabled = false;
+  }
+}
+
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2500)}
+</script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DailyBrief — Business Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf9f7;--surface:#fff;--surface2:#f3f1ec;
+  --border:#e8e5de;--border2:#d5d1c6;
+  --text:#191817;--sub:#55524a;--muted:#8e8a7e;
+  --accent:#9b1c2e;--accent-bg:#fdf0f2;--accent-sub:#7a1524;
+  --serif:'Source Serif 4',Georgia,serif;
+  --sans:'Inter',-apple-system,sans-serif;
+  --shadow:0 1px 3px rgba(25,24,23,.06),0 2px 8px rgba(25,24,23,.05);
+  --shadow2:0 8px 32px rgba(25,24,23,.13);
+  --ease:cubic-bezier(.25,.7,.3,1);
+  --r:8px;--r2:14px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#131211;--surface:#1c1b19;--surface2:#242220;
+  --border:#2f2d29;--border2:#403d36;
+  --text:#f2efe8;--sub:#b3afa4;--muted:#767268;
+  --accent:#e0334d;--accent-bg:#2c0e15;--accent-sub:#f0556e;
+}}
+html{font-size:15px;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+::selection{background:var(--accent);color:#fff}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:color-mix(in srgb,var(--surface) 90%,transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;position:sticky;top:0;z-index:100;
+}
+.logo{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:-.03em}
+.logo span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-tag{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.admin-link{font-size:12px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px;transition:.15s}
+.admin-link:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ── HERO ── */
+.hero{
+  max-width:1080px;margin:0 auto;
+  padding:72px 40px 52px;
+  border-bottom:1px solid var(--border);
+}
+.hero-inner{max-width:560px}
+.hero-eyebrow{
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+.hero-eyebrow::before{content:'';width:20px;height:2px;background:var(--accent);display:inline-block}
+.hero-hed{
+  font-family:var(--serif);
+  font-size:clamp(36px,5vw,60px);
+  font-weight:700;line-height:1.06;letter-spacing:-.035em;
+  margin-bottom:18px;
+}
+.hero-hed em{font-style:normal;color:var(--accent)}
+.hero-sub{font-size:16px;color:var(--sub);line-height:1.68;max-width:44ch}
+.hero-stats{
+  display:flex;gap:32px;margin-top:32px;padding-top:28px;
+  border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.hstat-val{font-family:var(--serif);font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
+.hstat-lbl{font-size:12px;color:var(--muted)}
+
+/* ── EDITION GRID ── */
+.editions-section{max-width:1080px;margin:0 auto;padding:52px 40px 96px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;gap:16px}
+.sec-head h2{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.sec-head p{font-size:13px;color:var(--muted)}
+
+.editions-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+}
+
+/* Latest edition — full width featured card */
+.edition-featured{
+  grid-column:1/-1;
+  background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r2);
+  padding:28px 32px;cursor:pointer;display:flex;align-items:flex-start;gap:28px;
+  transition:box-shadow .2s var(--ease),transform .2s var(--ease);
+  text-decoration:none;
+}
+.edition-featured:hover{box-shadow:var(--shadow2);transform:translateY(-2px)}
+.ef-date{
+  flex-shrink:0;text-align:center;
+  background:var(--accent);border-radius:10px;
+  padding:14px 16px;min-width:72px;
+}
+.ef-day{font-family:var(--serif);font-size:34px;font-weight:700;line-height:1;color:#fff}
+.ef-month{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.75);margin-top:3px}
+.ef-content{flex:1;min-width:0}
+.ef-badge{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.ef-title{font-family:var(--serif);font-size:21px;font-weight:700;line-height:1.25;color:var(--text);margin-bottom:6px}
+.ef-meta{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ef-meta-div{color:var(--border2)}
+.ef-cta{
+  flex-shrink:0;align-self:center;
+  background:var(--accent);color:#fff;border:none;border-radius:var(--r);
+  padding:10px 20px;font-size:13px;font-weight:600;
+  font-family:var(--sans);cursor:pointer;
+  transition:filter .15s;white-space:nowrap;
+}
+.ef-cta:hover{filter:brightness(1.1)}
+
+/* Archive cards */
+.edition-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);
+  padding:20px 22px;cursor:pointer;
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),transform .18s var(--ease);
+  text-decoration:none;display:flex;flex-direction:column;
+}
+.edition-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-2px)}
+.ec-date-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ec-date-block{
+  width:46px;height:46px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ec-day{font-size:18px;font-weight:700;line-height:1;color:var(--text)}
+.ec-month{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ec-relative{font-size:12px;color:var(--muted)}
+.ec-title{font-family:var(--serif);font-size:15px;font-weight:700;line-height:1.3;color:var(--text);margin-bottom:8px}
+.ec-meta{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
+.ec-count{font-size:11px;font-weight:600;background:var(--surface2);color:var(--muted);padding:2px 8px;border-radius:10px}
+.ec-source{font-size:11px;color:var(--muted)}
+.ec-arrow{margin-left:auto;font-size:14px;color:var(--muted);transition:transform .18s var(--ease),color .18s}
+.edition-card:hover .ec-arrow{transform:translateX(3px);color:var(--accent)}
+
+/* Empty & loading */
+.empty-editions{
+  grid-column:1/-1;text-align:center;padding:72px 24px;
+  color:var(--muted);font-size:14px;line-height:1.8;
+}
+.empty-icon{font-size:32px;margin-bottom:16px;opacity:.6}
+.empty-editions strong{display:block;font-size:16px;color:var(--sub);margin-bottom:8px}
+
+.skel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);
+  height:148px;animation:pulse 1.8s ease infinite;
+}
+.skel-featured{grid-column:1/-1;height:120px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ── FOOTER ── */
+.footer{
+  border-top:1px solid var(--border);padding:28px 40px;
+  max-width:1080px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.footer-logo{font-family:var(--serif);font-size:15px;font-weight:700}
+.footer-logo span{color:var(--accent)}
+.footer-note{font-size:12px;color:var(--muted)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:760px){
+  .topbar{padding:0 20px;height:52px}
+  .logo{font-size:19px}
+  .hero{padding:48px 20px 40px}
+  .hero-hed{font-size:34px}
+  .hero-stats{gap:20px}
+  .editions-section{padding:36px 20px 80px}
+  .edition-featured{flex-direction:column;padding:20px;gap:16px}
+  .ef-cta{width:100%}
+  .ef-date{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 14px;border-radius:8px}
+  .ef-day{font-size:26px}
+  .footer{padding:20px}
+  .editions-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .editions-grid{grid-template-columns:1fr}
+  .hero-sub{font-size:14.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Daily<span>Brief</span></div>
+  <div class="topbar-right">
+    <span class="topbar-tag">Business Intelligence</span>
+    <a href="admin.html" class="admin-link">Admin ↗</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Daily Business Intelligence</div>
+    <h1 class="hero-hed">Business news.<br><em>Read in minutes.</em></h1>
+    <p class="hero-sub">Every relevant article from today's newspapers, extracted by AI, ranked by importance, and ready to read — no noise, no paywalls, no wasted time.</p>
+    <div class="hero-stats">
+      <div>
+        <div class="hstat-val" id="stat-editions">—</div>
+        <div class="hstat-lbl">Editions published</div>
+      </div>
+      <div>
+        <div class="hstat-val" id="stat-articles">—</div>
+        <div class="hstat-lbl">Articles extracted</div>
+      </div>
+      <div>
+        <div class="hstat-val" id="stat-today">—</div>
+        <div class="hstat-lbl">Today's articles</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="editions-section">
+  <div class="sec-head">
+    <h2>All Editions</h2>
+    <p id="editions-sub">Loading…</p>
+  </div>
+  <div class="editions-grid" id="editions-grid">
+    <div class="skel skel-featured"></div>
+    <div class="skel"></div>
+    <div class="skel"></div>
+    <div class="skel"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-logo">Daily<span>Brief</span></div>
+  <div class="footer-note">Powered by Gemini AI · Free for everyone</div>
+</div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey);
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function timeAgo(dateKey) {
+  const d = new Date(dateKey);
+  const diff = Math.floor((Date.now() - d) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return `${diff} days ago`;
+}
+
+function openEdition(dateKey) {
+  window.location.href = `reader.html?edition=${dateKey}`;
+}
+
+async function loadData() {
+  // Load editions
+  const { data: editions, error } = await sb
+    .from('editions')
+    .select('*')
+    .order('date_key', { ascending: false })
+    .limit(30);
+
+  // Load stats
+  const { count: totalArticles } = await sb
+    .from('articles')
+    .select('*', { count: 'exact', head: true });
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const { count: todayArticles } = await sb
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('date_key', todayKey);
+
+  // Update stats
+  document.getElementById('stat-editions').textContent = editions?.length ?? '—';
+  document.getElementById('stat-articles').textContent = totalArticles ?? '—';
+  document.getElementById('stat-today').textContent = todayArticles ?? '—';
+
+  const grid = document.getElementById('editions-grid');
+  const sub = document.getElementById('editions-sub');
+
+  if (error || !editions?.length) {
+    grid.innerHTML = `<div class="empty-editions">
+      <div class="empty-icon">📰</div>
+      <strong>No editions yet</strong>
+      The admin will publish today's brief shortly. Check back soon.
+    </div>`;
+    sub.textContent = 'No editions published yet';
+    return;
+  }
+
+  sub.textContent = `${editions.length} edition${editions.length > 1 ? 's' : ''} available — click any to read`;
+
+  let html = '';
+
+  // Latest edition — featured card
+  const latest = editions[0];
+  const ld = new Date(latest.date_key);
+  const lDay = isNaN(ld) ? '—' : ld.getDate();
+  const lMonth = isNaN(ld) ? '' : MONTHS[ld.getMonth()];
+  const lWeekday = isNaN(ld) ? '' : WEEKDAYS[ld.getDay()];
+
+  html += `<div class="edition-featured" onclick="openEdition('${latest.date_key}')">
+    <div class="ef-date">
+      <div class="ef-day">${lDay}</div>
+      <div class="ef-month">${lMonth}</div>
+    </div>
+    <div class="ef-content">
+      <div class="ef-badge">Latest Edition</div>
+      <div class="ef-title">${lWeekday ? lWeekday + ', ' : ''}${latest.display_date || latest.date_key}</div>
+      <div class="ef-meta">
+        <span>${latest.article_count} articles</span>
+        ${latest.sources?.length ? `<span class="ef-meta-div">·</span><span>${latest.sources.join(', ')}</span>` : ''}
+        <span class="ef-meta-div">·</span>
+        <span>Published ${new Date(latest.published_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+    </div>
+    <button class="ef-cta" onclick="event.stopPropagation();openEdition('${latest.date_key}')">Read today's brief →</button>
+  </div>`;
+
+  // Archive cards
+  for (const ed of editions.slice(1)) {
+    const d = new Date(ed.date_key);
+    const day = isNaN(d) ? '—' : d.getDate();
+    const month = isNaN(d) ? '' : MONTHS[d.getMonth()];
+    const weekday = isNaN(d) ? '' : WEEKDAYS[d.getDay()];
+
+    html += `<div class="edition-card" onclick="openEdition('${ed.date_key}')">
+      <div class="ec-date-row">
+        <div class="ec-date-block">
+          <div class="ec-day">${day}</div>
+          <div class="ec-month">${month}</div>
+        </div>
+        <div class="ec-relative">${timeAgo(ed.date_key)}</div>
+      </div>
+      <div class="ec-title">${weekday ? weekday + ', ' : ''}${ed.display_date || ed.date_key}</div>
+      <div class="ec-meta">
+        <span class="ec-count">${ed.article_count} articles</span>
+        ${ed.sources?.length ? `<span class="ec-source">${ed.sources.join(' · ')}</span>` : ''}
+        <span class="ec-arrow">→</span>
+      </div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+loadData();
+</script>
+</body>
+</html>
