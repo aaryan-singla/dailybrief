@@ -4,9 +4,9 @@
 // NEVER put your service_role key here.
 
 const DAILYBRIEF_CONFIG = {
-  supabaseUrl:     'YOUR_SUPABASE_URL_HERE',       // e.g. https://xyzxyz.supabase.co
-  supabaseAnonKey: 'YOUR_SUPABASE_ANON_KEY_HERE',  // starts with eyJ...
+  supabaseUrl:     'https://sgujvndpvhjvgotruwxd.supabase.co',       // e.g. https://xyzxyz.supabase.co
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNndWp2bmRwdmhqdmdvdHJ1d3hkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODY2NjgsImV4cCI6MjA5OTM2MjY2OH0.9Q4p7JBonoVqHDgaA4K77p4uL1vk_gQyHa1J6ZU28OU',  // starts with eyJ...
   siteName:        'DailyBrief',
-  adminPassword:   'CHOOSE_A_PASSWORD_HERE',        // for admin.html access
+  adminPassword:   'Thangos124!',        // for admin.html access
   tagline:         'Business news. Read in minutes.',
 };
