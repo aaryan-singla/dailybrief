@@ -1189,7 +1189,6 @@ async function callGeminiChat(systemPrompt, userText) {
     if (res.status === 400 || res.status === 401 || res.status === 403) {
       throw new Error('API key rejected — paste a fresh key from aistudio.google.com into Config');
     }
-    if (res.status === 429) throw new Error('Rate limit reached. Wait a moment and try again.');
     throw new Error(err?.error?.message || `Gemini error ${res.status}`);
   }
 
