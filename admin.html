@@ -9,11 +9,20 @@
 <script src="config.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f7f6f3;--surface:#fff;--border:#e8e5de;--text:#191817;--sub:#55524a;--muted:#8e8a7e;--accent:#9b1c2e;--accent-bg:#fdf0f2;--sans:'Inter',-apple-system,sans-serif;--r:8px;--shadow:0 1px 3px rgba(0,0,0,.08)}
+:root{
+  --bg:#f7f6f3;--surface:#fff;--border:#e8e5de;--border2:#d5d1c6;
+  --text:#191817;--sub:#55524a;--muted:#8e8a7e;
+  --accent:#9b1c2e;--accent-bg:#fdf0f2;
+  --green:#166534;--green-bg:#dcfce7;
+  --sans:'Inter',-apple-system,sans-serif;--r:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 .bar{background:var(--surface);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
 .logo{font-size:17px;font-weight:700}.logo span{color:var(--accent)}
-.logout{font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);padding:5px 11px;border-radius:6px;cursor:pointer}
+.logout{font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);padding:5px 11px;border-radius:6px;cursor:pointer;font-family:var(--sans)}
+.logout:hover{border-color:var(--accent);color:var(--accent)}
 .page{max-width:900px;margin:0 auto;padding:40px 24px 80px}
 
 /* Login */
@@ -22,452 +31,1527 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 #login-screen p{font-size:13px;color:var(--muted);margin-bottom:28px}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;text-align:left}
 .field label{font-size:12px;font-weight:600;color:var(--sub)}
-.field input{padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans)}
+.field input{
+  padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);
+  font-size:14px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans);
+}
 .field input:focus{border-color:var(--accent)}
-.btn{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.btn{
+  width:100%;padding:10px;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);
+}
 .btn:hover{filter:brightness(1.08)}
-.err{font-size:13px;color:#b91c1c;text-align:center;margin-top:8px;display:none}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.err{font-size:13px;color:#b91c1c;text-align:center;margin-top:8px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;text-align:left;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;display:none}
 
 /* Admin UI */
 #admin-screen{display:none}
-.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
 .stat-val{font-size:28px;font-weight:700;margin-bottom:4px}
 .stat-lbl{font-size:12px;color:var(--muted)}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:20px}
-.panel h2{font-size:15px;font-weight:700;margin-bottom:16px}
-.panel p{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:14px}
+.panel h2{font-size:15px;font-weight:700;margin-bottom:4px}
+.panel-desc{font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px}
+
+/* API Key input */
+.key-row{display:flex;gap:8px;margin-bottom:12px}
+.key-row input{
+  flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;
+  font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans);
+}
+.key-row input:focus{border-color:var(--accent)}
+.key-row button{
+  padding:8px 14px;background:var(--accent);color:#fff;border:none;
+  border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);
+}
+.key-row button:hover{filter:brightness(1.08)}
+.key-status{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+.key-status.ok{color:var(--green)}
 
 /* Upload */
-.drop{border:1.5px dashed var(--border);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:.2s}
+.drop{
+  border:1.5px dashed var(--border);border-radius:10px;padding:36px;
+  text-align:center;cursor:pointer;transition:.2s;
+}
 .drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-bg)}
 .drop input{display:none}
 .drop-icon{font-size:28px;margin-bottom:10px}
 .drop-title{font-size:14px;font-weight:600;margin-bottom:4px}
 .drop-sub{font-size:12px;color:var(--muted)}
-.drop-list{margin-top:12px;font-size:12px;color:var(--sub)}
+.file-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.file-chip{
+  font-size:12px;background:var(--bg);border:1px solid var(--border2);
+  border-radius:20px;padding:4px 10px;color:var(--sub);
+}
+.file-chip .rm{
+  margin-left:6px;cursor:pointer;color:var(--muted);font-size:14px;
+  vertical-align:middle;line-height:1;border:none;background:none;padding:0;
+  font-family:var(--sans);
+}
+.file-chip .rm:hover{color:var(--accent)}
+
+/* File size warning */
+.size-warn{font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;margin-top:8px;display:none}
+
+/* Controls */
+.controls-row{display:flex;gap:8px;margin-top:14px;align-items:center}
+.process-btn{
+  padding:9px 20px;background:var(--accent);color:#fff;border:none;
+  border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);
+}
+.process-btn:hover{filter:brightness(1.08)}
+.process-btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.proc-status{font-size:12px;color:var(--muted)}
 
 /* Progress */
-.prog-wrap{background:var(--border);border-radius:99px;height:4px;margin:12px 0;overflow:hidden}
-.prog-fill{height:100%;background:var(--accent);border-radius:99px;width:0;transition:width .4s}
-.prog-step{font-size:13px;color:var(--sub);min-height:20px}
-.prog-sub{font-size:11px;color:var(--muted);margin-top:4px}
-.proc-log{font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace;background:var(--bg);padding:8px 12px;border-radius:6px;max-height:80px;overflow-y:auto}
+.prog-wrap{background:var(--border);border-radius:99px;height:5px;margin:12px 0;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:99px;width:0;transition:width .5s cubic-bezier(.25,.7,.3,1)}
+.prog-step{font-size:13px;color:var(--sub);min-height:20px;font-weight:500}
+.prog-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.proc-area{display:none;margin-top:16px}
+
+/* Log */
+.proc-log{
+  font-size:11px;color:var(--muted);margin-top:10px;font-family:'Menlo','Consolas',monospace;
+  background:var(--bg);padding:10px 12px;border-radius:6px;
+  max-height:160px;overflow-y:auto;line-height:1.6;
+  border:1px solid var(--border);white-space:pre-wrap;word-break:break-all;
+}
+
+/* Pipeline stages indicator */
+.stages{display:flex;gap:0;margin:14px 0 0;overflow:hidden;border-radius:6px;border:1px solid var(--border)}
+.stage{
+  flex:1;padding:6px 8px;font-size:10px;font-weight:600;text-align:center;
+  background:var(--bg);color:var(--muted);letter-spacing:.04em;text-transform:uppercase;
+  border-right:1px solid var(--border);transition:.3s;
+}
+.stage:last-child{border-right:none}
+.stage.active{background:var(--accent-bg);color:var(--accent)}
+.stage.done{background:var(--green-bg);color:var(--green)}
 
 /* Editions table */
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+th{
+  text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+}
 td{padding:10px 12px;border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}
-.del-btn{font-size:11px;color:#b91c1c;background:none;border:1px solid #fca5a5;padding:3px 8px;border-radius:4px;cursor:pointer}
+.del-btn{
+  font-size:11px;color:#b91c1c;background:none;border:1px solid #fca5a5;
+  padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--sans);
+}
 .del-btn:hover{background:#fef2f2}
-.badge-count{display:inline-block;background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+.badge-count{
+  display:inline-block;background:var(--accent-bg);color:var(--accent);
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;
+}
 
 /* Toast */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:#191817;color:#f2efe8;padding:9px 18px;border-radius:99px;font-size:13px;z-index:900;opacity:0;transition:.22s;pointer-events:none}
+.toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:#191817;color:#f2efe8;padding:9px 18px;border-radius:99px;
+  font-size:13px;z-index:900;opacity:0;transition:.22s;pointer-events:none;
+}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Setup hint */
+.setup-hint{
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+  padding:14px 16px;font-size:12.5px;color:#1e40af;line-height:1.65;margin-bottom:20px;
+}
+.setup-hint strong{display:block;margin-bottom:4px;font-size:13px}
 </style>
 </head>
 <body>
 
-<div class="bar">
+<div class="bar" role="banner">
   <div class="logo">Daily<span>Brief</span> <span style="font-size:11px;font-weight:500;color:var(--muted);margin-left:6px">Admin</span></div>
-  <button class="logout" id="logout-btn" onclick="logout()" style="display:none">Log out</button>
+  <button class="logout" id="logout-btn" style="display:none" aria-label="Log out">Log out</button>
 </div>
 
-<!-- LOGIN -->
-<div id="login-screen" class="page" style="max-width:360px">
+<!-- ── LOGIN ── -->
+<div id="login-screen" class="page" role="main" aria-label="Admin login">
   <h1>Admin Login</h1>
-  <p>Enter your admin password to access the DailyBrief control panel.</p>
-  <div class="field"><label>Password</label><input type="password" id="pw-inp" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')login()"/></div>
-  <button class="btn" onclick="login()">Sign in</button>
-  <div class="err" id="login-err">Incorrect password</div>
+  <p>Enter your admin password to manage DailyBrief.</p>
+  <div class="field">
+    <label for="pw-inp">Password</label>
+    <input type="password" id="pw-inp" autocomplete="current-password" placeholder="Enter admin password"/>
+  </div>
+  <button class="btn" id="login-btn">Sign in</button>
+  <div class="err" id="login-err" role="alert" aria-live="assertive" style="display:none">Incorrect password</div>
+  <div class="hint" id="setup-hint">
+    <strong>First time?</strong>
+    To set your admin password, open your browser console and run:<br><br>
+    <code>DailyBriefAdmin.setPassword('your-password-here')</code><br><br>
+    This stores a secure hash in your browser. The password is never in config.js.
+  </div>
 </div>
 
-<!-- ADMIN -->
-<div id="admin-screen" class="page">
-  <div class="grid">
+<!-- ── ADMIN ── -->
+<div id="admin-screen" class="page" role="main" aria-label="Admin panel">
+
+  <div class="setup-hint" id="rls-reminder" style="display:none">
+    <strong>Supabase RLS Reminder</strong>
+    Ensure your <code>articles</code> and <code>editions</code> tables have Row Level Security
+    enabled with a policy that allows public SELECT and restricts INSERT/UPDATE/DELETE.
+    This admin page uses the anon key — RLS is your only write guard.
+  </div>
+
+  <div class="grid3" role="region" aria-label="Statistics">
     <div class="stat"><div class="stat-val" id="stat-editions">—</div><div class="stat-lbl">Total Editions</div></div>
     <div class="stat"><div class="stat-val" id="stat-articles">—</div><div class="stat-lbl">Total Articles</div></div>
     <div class="stat"><div class="stat-val" id="stat-today">—</div><div class="stat-lbl">Today's Articles</div></div>
   </div>
 
   <!-- Upload panel -->
-  <div class="panel">
+  <div class="panel" role="region" aria-label="Upload and process PDFs">
     <h2>Upload Today's PDFs</h2>
-    <p>Drop 1-3 newspaper PDFs. Processing uses your Gemini key and typically takes 4-8 minutes per newspaper. Articles are saved directly to the database and immediately visible to users.</p>
+    <p class="panel-desc">Drop 1–3 newspaper PDFs. The pipeline runs a 4-stage extraction: discover → enrich → rank → verify. Takes 6–12 minutes per newspaper. Articles are published immediately.</p>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <input type="text" id="gemini-inp" placeholder="Gemini API key (AQ.Ab… or AIza…)" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:var(--sans)"/>
-      <button onclick="saveGKey()" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save key</button>
+    <div class="key-row">
+      <input type="password" id="gemini-inp" placeholder="Gemini API key (AIza…)" autocomplete="off" aria-label="Gemini API key"/>
+      <button onclick="saveGKey()">Save key</button>
     </div>
+    <div class="key-status" id="key-status">No key saved</div>
 
-    <div class="drop" id="adrop">
-      <input type="file" id="afile" accept=".pdf" multiple/>
-      <div class="drop-icon">📄</div>
+    <div class="drop" id="adrop" role="button" tabindex="0" aria-label="Drop PDF files here or click to browse">
+      <input type="file" id="afile" accept=".pdf" multiple aria-label="Select PDF files"/>
+      <div class="drop-icon" aria-hidden="true">📄</div>
       <div class="drop-title">Drop newspaper PDFs here</div>
-      <div class="drop-sub">or click to browse — multiple files accepted</div>
-      <div class="drop-list" id="file-list"></div>
+      <div class="drop-sub">or click to browse · max 3 files · PDF only</div>
+      <div class="file-chips" id="file-chips"></div>
     </div>
+    <div class="size-warn" id="size-warn">⚠ Large files will take longer to render. Processing may take 15+ minutes.</div>
 
-    <div id="proc-area" style="display:none;margin-top:16px">
+    <div class="proc-area" id="proc-area" role="status" aria-live="polite">
       <div class="prog-step" id="proc-step">Starting…</div>
       <div class="prog-wrap"><div class="prog-fill" id="proc-fill"></div></div>
       <div class="prog-sub" id="proc-sub"></div>
-      <div class="proc-log" id="proc-log"></div>
+      <div class="stages" id="stages" aria-label="Pipeline stages">
+        <div class="stage" id="stage-discover">1 Discover</div>
+        <div class="stage" id="stage-enrich">2 Enrich</div>
+        <div class="stage" id="stage-rank">3 Rank</div>
+        <div class="stage" id="stage-verify">4 Verify</div>
+        <div class="stage" id="stage-save">5 Save</div>
+      </div>
+      <div class="proc-log" id="proc-log" role="log" aria-label="Processing log"></div>
     </div>
 
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <button id="process-btn" onclick="startProcessing()" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer" disabled>Process PDFs</button>
-      <span id="proc-status" style="font-size:12px;color:var(--muted);align-self:center"></span>
+    <div class="controls-row">
+      <button class="process-btn" id="process-btn" disabled>Process PDFs</button>
+      <span class="proc-status" id="proc-status"></span>
     </div>
   </div>
 
   <!-- Editions table -->
-  <div class="panel">
+  <div class="panel" role="region" aria-label="Published editions">
     <h2>Published Editions</h2>
-    <div id="editions-table"><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
+    <div id="editions-table" aria-live="polite"><p style="font-size:13px;color:var(--muted)">Loading…</p></div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
+'use strict';
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// Catch unhandled errors and show in log
-window.addEventListener('unhandledrejection', e => {
-  const el = document.getElementById('proc-log');
-  if(el) el.innerHTML += `UNHANDLED ERROR: ${e.reason?.message || e.reason}\n`;
-  console.error('Unhandled:', e.reason);
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH — SHA-256 hash stored in localStorage; plaintext never stored anywhere
+// ─────────────────────────────────────────────────────────────────────────────
+// Security improvements over original:
+// 1. Admin password removed from config.js entirely
+// 2. Only a SHA-256 hash is stored in localStorage — not the plaintext
+// 3. Brute-force lockout: 5 attempts → 15 minute lockout
+// 4. Session stored in sessionStorage (cleared on tab close), not localStorage
+// 5. setPassword() exposed on DailyBriefAdmin global for first-time setup only
+// ─────────────────────────────────────────────────────────────────────────────
+const AUTH_HASH_KEY  = 'db_auth_hash_v2';
+const AUTH_LOCK_KEY  = 'db_auth_lock';
+const AUTH_COUNT_KEY = 'db_auth_attempts';
+const SESSION_KEY    = 'db_admin_session';
+const LOCKOUT_MS     = 15 * 60 * 1000;
+const MAX_ATTEMPTS   = 5;
 
-const { createClient } = supabase;
-const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey, {
-  auth: { persistSession: false },
-  global: { headers: { 'X-Client-Info': 'dailybrief-admin' } }
-});
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
-function login() {
+// Expose for first-time setup via browser console
+window.DailyBriefAdmin = {
+  async setPassword(pw) {
+    if (!pw || pw.length < 8) { console.error('Password must be at least 8 characters.'); return; }
+    const hash = await sha256(pw);
+    localStorage.setItem(AUTH_HASH_KEY, hash);
+    console.log('Admin password set successfully. You can now log in.');
+  }
+};
+
+function isLocked() {
+  const lockTime = parseInt(localStorage.getItem(AUTH_LOCK_KEY) || '0');
+  if (!lockTime) return false;
+  if (Date.now() - lockTime > LOCKOUT_MS) {
+    localStorage.removeItem(AUTH_LOCK_KEY);
+    localStorage.removeItem(AUTH_COUNT_KEY);
+    return false;
+  }
+  return true;
+}
+
+function recordFailedAttempt() {
+  const count = parseInt(localStorage.getItem(AUTH_COUNT_KEY) || '0') + 1;
+  localStorage.setItem(AUTH_COUNT_KEY, count);
+  if (count >= MAX_ATTEMPTS) {
+    localStorage.setItem(AUTH_LOCK_KEY, Date.now());
+    localStorage.removeItem(AUTH_COUNT_KEY);
+  }
+  return count;
+}
+
+function clearAttempts() {
+  localStorage.removeItem(AUTH_COUNT_KEY);
+  localStorage.removeItem(AUTH_LOCK_KEY);
+}
+
+async function login() {
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-err');
+  const hint  = document.getElementById('setup-hint');
+  errEl.style.display = 'none';
+
+  if (isLocked()) {
+    errEl.textContent = 'Too many failed attempts. Try again in 15 minutes.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const storedHash = localStorage.getItem(AUTH_HASH_KEY);
+  if (!storedHash) {
+    hint.style.display = 'block';
+    errEl.textContent = 'No admin password set. See the instructions below.';
+    errEl.style.display = 'block';
+    return;
+  }
+
   const pw = document.getElementById('pw-inp').value;
-  if (pw === DAILYBRIEF_CONFIG.adminPassword) {
-    sessionStorage.setItem('db_admin', '1');
+  if (!pw) { errEl.textContent = 'Enter your password.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  const hash = await sha256(pw);
+  if (hash === storedHash) {
+    clearAttempts();
+    // Store a session token (random, not the password) in sessionStorage
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    sessionStorage.setItem(SESSION_KEY, token);
+    document.getElementById('pw-inp').value = '';
     showAdmin();
   } else {
-    document.getElementById('login-err').style.display = 'block';
+    const remaining = MAX_ATTEMPTS - recordFailedAttempt();
+    if (remaining <= 0) {
+      errEl.textContent = 'Too many failed attempts. Locked for 15 minutes.';
+    } else {
+      errEl.textContent = `Incorrect password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`;
+    }
+    errEl.style.display = 'block';
+    document.getElementById('pw-inp').value = '';
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
   }
 }
-function logout() { sessionStorage.removeItem('db_admin'); location.reload(); }
-document.getElementById('pw-inp').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+function logout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+
+function isLoggedIn() {
+  return !!sessionStorage.getItem(SESSION_KEY);
+}
 
 function showAdmin() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'block';
   document.getElementById('logout-btn').style.display = 'block';
+  document.getElementById('logout-btn').addEventListener('click', logout);
   const gk = localStorage.getItem('db_admin_gemini') || '';
-  document.getElementById('gemini-inp').value = gk;
-  testSupabaseConnection();
+  document.getElementById('gemini-inp').value = gk ? '●'.repeat(12) : '';
+  updateKeyStatus();
   loadStats();
   loadEditions();
 }
 
-if (sessionStorage.getItem('db_admin')) showAdmin();
+// Init: check session, show hint if no hash set
+(function init() {
+  if (isLoggedIn()) {
+    showAdmin();
+    return;
+  }
+  // Show setup hint if no hash is registered yet
+  if (!localStorage.getItem(AUTH_HASH_KEY)) {
+    document.getElementById('setup-hint').style.display = 'block';
+  }
+  document.getElementById('pw-inp').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+  document.getElementById('login-btn').addEventListener('click', login);
+})();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Supabase client
+// ─────────────────────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey, {
+  auth: { persistSession: false },
+  global: { headers: { 'X-Client-Info': 'dailybrief-admin/2' } }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gemini key management
+// ─────────────────────────────────────────────────────────────────────────────
 function saveGKey() {
   const v = document.getElementById('gemini-inp').value.trim();
-  if (!v || v.length < 20) { showToast('Paste a valid key'); return; }
-  localStorage.setItem('db_admin_gemini', v); showToast('Key saved');
+  if (!v || v === '●'.repeat(12)) { showToast('Paste your Gemini API key first'); return; }
+  if (v.length < 20) { showToast('Key looks too short — check it'); return; }
+  if (!/^AIza|^AQ\./.test(v)) { showToast('Key format not recognised — paste it directly from AI Studio'); return; }
+  localStorage.setItem('db_admin_gemini', v);
+  document.getElementById('gemini-inp').value = '●'.repeat(12);
+  updateKeyStatus();
+  showToast('Key saved');
 }
 
-// ── Stats ────────────────────────────────────────────────────────────────────
+function updateKeyStatus() {
+  const el = document.getElementById('key-status');
+  const hasKey = !!localStorage.getItem('db_admin_gemini');
+  el.textContent = hasKey ? '✓ Gemini key saved in browser' : 'No key saved';
+  el.className = 'key-status' + (hasKey ? ' ok' : '');
+}
+
+function getGKey() {
+  return localStorage.getItem('db_admin_gemini') || '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stats
+// ─────────────────────────────────────────────────────────────────────────────
 async function loadStats() {
-  const today = new Date().toISOString().slice(0,10);
-  const { count: eCnt } = await sb.from('editions').select('*', {count:'exact',head:true});
-  const { count: aCnt } = await sb.from('articles').select('*', {count:'exact',head:true});
-  const { count: tCnt } = await sb.from('articles').select('*', {count:'exact',head:true}).eq('date_key',today);
-  document.getElementById('stat-editions').textContent = eCnt ?? '—';
-  document.getElementById('stat-articles').textContent = aCnt ?? '—';
-  document.getElementById('stat-today').textContent = tCnt ?? '—';
+  const today = new Date().toISOString().slice(0, 10);
+  const [e, a, t] = await Promise.all([
+    sb.from('editions').select('*', { count: 'exact', head: true }),
+    sb.from('articles').select('*', { count: 'exact', head: true }),
+    sb.from('articles').select('*', { count: 'exact', head: true }).eq('date_key', today),
+  ]);
+  document.getElementById('stat-editions').textContent = e.count ?? '—';
+  document.getElementById('stat-articles').textContent = a.count ?? '—';
+  document.getElementById('stat-today').textContent    = t.count ?? '—';
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Editions table — built with DOM (no innerHTML with DB data)
+// ─────────────────────────────────────────────────────────────────────────────
 async function loadEditions() {
-  const { data } = await sb.from('editions').select('*').order('date_key',{ascending:false}).limit(20);
-  if (!data?.length) { document.getElementById('editions-table').innerHTML = '<p style="font-size:13px;color:var(--muted)">No editions yet.</p>'; return; }
-  document.getElementById('editions-table').innerHTML = `<table>
-    <tr><th>Date</th><th>Articles</th><th>Sources</th><th>Published</th><th></th></tr>
-    ${data.map(e => `<tr>
-      <td><strong>${e.display_date || e.date_key}</strong></td>
-      <td><span class="badge-count">${e.article_count}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${(e.sources||[]).join(', ')}</td>
-      <td style="font-size:12px;color:var(--muted)">${new Date(e.published_at).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})}</td>
-      <td><button class="del-btn" onclick="deleteEdition('${e.id}','${e.date_key}')">Delete</button></td>
-    </tr>`).join('')}
-  </table>`;
+  const { data } = await sb.from('editions').select('*').order('date_key', { ascending: false }).limit(20);
+  const container = document.getElementById('editions-table');
+  if (!data?.length) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--muted)">No editions yet.</p>';
+    return;
+  }
+
+  const tbl = document.createElement('table');
+  tbl.innerHTML = '<thead><tr><th>Date</th><th>Articles</th><th>Sources</th><th>Published</th><th></th></tr></thead>';
+  const tbody = document.createElement('tbody');
+
+  for (const e of data) {
+    const tr = document.createElement('tr');
+
+    const tdDate = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = e.display_date || e.date_key;
+    tdDate.append(strong);
+
+    const tdCount = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'badge-count';
+    badge.textContent = e.article_count;
+    tdCount.append(badge);
+
+    const tdSrc = document.createElement('td');
+    tdSrc.style.fontSize = '12px';
+    tdSrc.style.color = 'var(--muted)';
+    tdSrc.textContent = (e.sources || []).join(', ');
+
+    const tdPub = document.createElement('td');
+    tdPub.style.fontSize = '12px';
+    tdPub.style.color = 'var(--muted)';
+    const pubDate = new Date(e.published_at);
+    tdPub.textContent = isNaN(pubDate) ? '—' : pubDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+
+    const tdAction = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = 'Delete';
+    const safeId = e.id;
+    const safeKey = e.date_key;
+    delBtn.addEventListener('click', () => deleteEdition(safeId, safeKey));
+    tdAction.append(delBtn);
+
+    tr.append(tdDate, tdCount, tdSrc, tdPub, tdAction);
+    tbody.append(tr);
+  }
+
+  tbl.append(tbody);
+  container.innerHTML = '';
+  container.append(tbl);
 }
 
 async function deleteEdition(id, dateKey) {
-  if (!confirm(`Delete edition ${dateKey}? This removes all articles too.`)) return;
-  await sb.from('editions').delete().eq('id', id);
+  if (!confirm(`Delete edition ${dateKey}? This removes all ${dateKey} articles too.`)) return;
+  // Delete articles first (FK constraint), then edition
+  const { error: artErr } = await sb.from('articles').delete().eq('edition_id', id);
+  if (artErr) { showToast('Could not delete articles: ' + artErr.message); return; }
+  const { error: edErr } = await sb.from('editions').delete().eq('id', id);
+  if (edErr) { showToast('Could not delete edition: ' + edErr.message); return; }
   showToast('Edition deleted');
-  loadStats(); loadEditions();
+  loadStats();
+  loadEditions();
 }
 
-// ── File handling ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// File handling — validate PDF MIME and size
+// ─────────────────────────────────────────────────────────────────────────────
+const MAX_FILES   = 3;
+const MAX_SIZE_MB = 50;
 let selectedFiles = [];
+
 const adrop = document.getElementById('adrop');
 const afile = document.getElementById('afile');
-adrop.addEventListener('click', () => afile.click());
+
+adrop.addEventListener('click', e => { if (e.target !== adrop && !adrop.contains(e.target)) return; afile.click(); });
+adrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); afile.click(); } });
 adrop.addEventListener('dragover', e => { e.preventDefault(); adrop.classList.add('drag'); });
 adrop.addEventListener('dragleave', () => adrop.classList.remove('drag'));
 adrop.addEventListener('drop', e => {
-  e.preventDefault(); adrop.classList.remove('drag');
-  selectedFiles = [...e.dataTransfer.files].filter(f => f.type==='application/pdf');
-  updateFileList();
+  e.preventDefault();
+  adrop.classList.remove('drag');
+  addFiles([...e.dataTransfer.files]);
 });
-afile.addEventListener('change', () => { selectedFiles = [...afile.files]; updateFileList(); });
+afile.addEventListener('change', () => { addFiles([...afile.files]); afile.value = ''; });
 
-function updateFileList() {
-  const el = document.getElementById('file-list');
-  el.innerHTML = selectedFiles.map(f => `📄 ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`).join('<br>');
-  document.getElementById('process-btn').disabled = selectedFiles.length === 0;
-  document.getElementById('proc-status').textContent = selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length>1?'s':''} selected` : '';
+function addFiles(incoming) {
+  const valid = incoming.filter(f => {
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+      showToast(`Skipped ${f.name} — not a PDF`); return false;
+    }
+    if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+      showToast(`Skipped ${f.name} — exceeds ${MAX_SIZE_MB}MB`); return false;
+    }
+    return true;
+  });
+
+  for (const f of valid) {
+    if (selectedFiles.length >= MAX_FILES) { showToast(`Maximum ${MAX_FILES} files`); break; }
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  }
+  updateFileUI();
 }
 
-// ── In-browser processing pipeline (same as dailybrief.html) ─────────────────
-const GEMINI_MODELS = ['gemini-2.5-flash','gemini-3.5-flash','gemini-3.1-flash-lite','gemini-2.5-flash-lite'];
-let geminiModel = null;
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  updateFileUI();
+}
 
+function updateFileUI() {
+  const chips = document.getElementById('file-chips');
+  const warn  = document.getElementById('size-warn');
+  chips.innerHTML = '';
+  let totalMB = 0;
+  selectedFiles.forEach((f, i) => {
+    const mb = f.size / 1024 / 1024;
+    totalMB += mb;
+    const chip = document.createElement('span');
+    chip.className = 'file-chip';
+    chip.textContent = `📄 ${f.name} (${mb.toFixed(1)} MB)`;
+    const rm = document.createElement('button');
+    rm.className = 'rm';
+    rm.textContent = '×';
+    rm.setAttribute('aria-label', `Remove ${f.name}`);
+    rm.addEventListener('click', e => { e.stopPropagation(); removeFile(i); });
+    chip.append(rm);
+    chips.append(chip);
+  });
+  warn.style.display = totalMB > 20 ? 'block' : 'none';
+  document.getElementById('process-btn').disabled = selectedFiles.length === 0;
+  document.getElementById('proc-status').textContent =
+    selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} ready` : '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Processing UI helpers
+// ─────────────────────────────────────────────────────────────────────────────
 function log(msg) {
   const el = document.getElementById('proc-log');
-  el.innerHTML += msg + '\n';
+  el.textContent += msg + '\n';
   el.scrollTop = el.scrollHeight;
 }
-function setProc(step, pct, sub='') {
+function setStage(name) {
+  ['discover','enrich','rank','verify','save'].forEach((s, i) => {
+    const el = document.getElementById('stage-' + s);
+    if (!el) return;
+    const idx = ['discover','enrich','rank','verify','save'].indexOf(name);
+    el.className = 'stage' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  });
+}
+function setProc(step, pct, sub = '') {
   document.getElementById('proc-step').textContent = step;
   document.getElementById('proc-fill').style.width = pct + '%';
   document.getElementById('proc-sub').textContent = sub;
 }
 
-async function callGemini(systemPrompt, parts, asJson=true) {
-  const gkey = localStorage.getItem('db_admin_gemini') || '';
-  if (!gkey) throw new Error('No Gemini key set');
+// ─────────────────────────────────────────────────────────────────────────────
+// Gemini API wrapper with retry logic
+// ─────────────────────────────────────────────────────────────────────────────
+const GEMINI_MODEL_PREFERENCE = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
+let resolvedModel = null;
 
-  if (!geminiModel) {
-    for (const m of GEMINI_MODELS) {
-      try {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${gkey}`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents:[{role:'user',parts:[{text:'Hi'}]}], generationConfig:{maxOutputTokens:5} })
-        });
-        if (r.ok) { geminiModel = m; log(`Using model: ${m}`); break; }
-      } catch {}
-    }
-    if (!geminiModel) throw new Error('No Gemini model available');
+async function probeModel(gkey) {
+  for (const m of GEMINI_MODEL_PREFERENCE) {
+    try {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${gkey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Hi' }] }], generationConfig: { maxOutputTokens: 5 } })
+        }
+      );
+      if (r.ok) { resolvedModel = m; log(`Model: ${m}`); return m; }
+    } catch {}
   }
+  throw new Error('No Gemini model is accessible with this API key. Check your key at aistudio.google.com');
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function callGemini(systemPrompt, parts, opts = {}) {
+  const { asJson = true, maxRetries = 3, temperature = 0.15 } = opts;
+  const gkey = getGKey();
+  if (!gkey) throw new Error('No Gemini API key. Set one and try again.');
+  if (!resolvedModel) await probeModel(gkey);
 
   const body = {
-    contents: [{ role:'user', parts }],
+    contents: [{ role: 'user', parts }],
     systemInstruction: { parts: [{ text: systemPrompt }] },
-    generationConfig: { temperature:0.1, maxOutputTokens:65536, ...(asJson ? {responseMimeType:'application/json'} : {}) }
+    generationConfig: {
+      temperature,
+      maxOutputTokens: 65536,
+      ...(asJson ? { responseMimeType: 'application/json' } : {}),
+    },
   };
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${gkey}`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-  });
+  let lastErr;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (attempt > 0) {
+      const delay = attempt === 1 ? 15000 : 30000;
+      log(`Retry ${attempt}/${maxRetries - 1} — waiting ${delay / 1000}s…`);
+      await sleep(delay);
+    }
 
-  if (!res.ok) {
-    if (res.status===429) {
-      log('Rate limited (429) — waiting 60s...');
-      await new Promise(r=>setTimeout(r,61000));
-      return callGemini(systemPrompt,parts,asJson);
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${gkey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+
+      if (res.status === 429) {
+        const retryAfter = parseInt(res.headers.get('Retry-After') || '60');
+        log(`Rate limited — waiting ${retryAfter}s…`);
+        await sleep(retryAfter * 1000);
+        attempt--; // don't count this as a retry
+        continue;
+      }
+
+      if (res.status === 503 || res.status === 500) {
+        log(`Server error ${res.status} — will retry…`);
+        lastErr = new Error(`Gemini server error ${res.status}`);
+        continue;
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(`Gemini ${res.status}: ${errData?.error?.message || 'unknown error'}`);
+      }
+
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!text) throw new Error('Gemini returned empty response');
+
+      if (!asJson) return text;
+      return parseJsonSafe(text);
+
+    } catch (err) {
+      if (err.message.includes('429') || err.message.includes('Rate')) throw err;
+      lastErr = err;
     }
-    if (res.status===503 || res.status===500) {
-      log(`Server error (${res.status}) — waiting 20s then retrying...`);
-      await new Promise(r=>setTimeout(r,20000));
-      return callGemini(systemPrompt,parts,asJson);
-    }
-    throw new Error(`Gemini error ${res.status}`);
   }
-  const data = await res.json();
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (!asJson) return text;
-  text = text.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/g,'').trim();
-  try { return JSON.parse(text); } catch {}
-  const s=text.indexOf('{'),e=text.lastIndexOf('}');
-  if(s!==-1&&e!==-1){try{return JSON.parse(text.slice(s,e+1));}catch{}}
-  const sa=text.indexOf('['),ea=text.lastIndexOf(']');
-  if(sa!==-1&&ea!==-1){try{return JSON.parse(text.slice(sa,ea+1));}catch{}}
-  return asJson ? {} : text;
+  throw lastErr || new Error('Gemini request failed after retries');
 }
 
-async function pdfToImages(file) {
+function parseJsonSafe(text) {
+  let clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/g, '').trim();
+  try { return JSON.parse(clean); } catch {}
+  // Try extracting the outermost object
+  const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+  if (s !== -1 && e !== -1) { try { return JSON.parse(clean.slice(s, e + 1)); } catch {} }
+  // Try extracting the outermost array
+  const sa = clean.indexOf('['), ea = clean.lastIndexOf(']');
+  if (sa !== -1 && ea !== -1) { try { return JSON.parse(clean.slice(sa, ea + 1)); } catch {} }
+  log('WARNING: Could not parse JSON response, returning {}');
+  return {};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PDF → images
+// ─────────────────────────────────────────────────────────────────────────────
+async function pdfToImages(file, onProgress) {
   const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const images = [];
-  for (let i=1;i<=pdf.numPages;i++) {
-    setProc(`Rendering page ${i} of ${pdf.numPages}…`, 5+Math.round((i/pdf.numPages)*18), file.name);
+  for (let i = 1; i <= pdf.numPages; i++) {
+    onProgress(i, pdf.numPages);
     const page = await pdf.getPage(i);
-    const vp = page.getViewport({scale:1.5});
-    const c = document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
-    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
-    images.push(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+    const vp = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width;
+    canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    images.push(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    // Free canvas memory
+    canvas.width = 1; canvas.height = 1;
   }
-  return images;
+  return { images, total: pdf.numPages };
 }
 
-const DISCOVER_SYSTEM = `List every relevant business article headline from these newspaper pages. Return JSON: {"date":"from masthead or empty","articles":[{"headline":"exact headline","byline":"author or empty","category":"MARKETS|ECONOMY|BANKING|POLICY|CORPORATE|TECHNOLOGY|AI|STARTUPS|GLOBAL|ENERGY|HEALTHCARE|AUTO|MFG|MA|OPINION|RBI"}]}. Skip ads, event promos, lifestyle, sports, crosswords. Include everything else.`;
-const ENRICH_SYSTEM = `Write executive briefs for these newspaper articles. Return JSON array: [{"importance":<1-5>,"brief":"150-200 word brief with all numbers and names","body":"complete article text verbatim"}]. Importance: 1=market-moving, 2=very important, 3=useful, 4=minor, 5=low.`;
+// ═══════════════════════════════════════════════════════════════════════════
+// PIPELINE DESIGN RATIONALE
+//
+// Stage 1 — DISCOVER: One job only. Scan pages for headlines + bylines.
+//   Category is intentionally excluded here — the model hasn't read the
+//   article yet and will misclassify from headlines alone. Category is
+//   assigned in Stage 2 where the full text is visible.
+//   Batch: 5 pages with 1-page overlap so no article is split at a boundary.
+//
+// Stage 2 — ENRICH: One article per call. This is the most important
+//   architectural decision in the pipeline. Grouping multiple articles per
+//   call forces the model to context-switch between articles on the same
+//   page, degrading brief quality and body completeness. The extra API calls
+//   are worth it — briefs are the product. Temperature 0.1 (determinism).
+//
+// Stage 3 — RANK: Feed full briefs (not truncated). 7 dimensions weighted
+//   for an MBA audience. Batch 15 articles per call maximum — beyond that,
+//   scoring consistency degrades. A peak-dimension bonus rewards articles
+//   that are extremely important on one axis (e.g., RBI rate change scores
+//   10 on policy but low on corporate relevance — it should still rank #1).
+//
+// Stage 4 — VERIFY + REPAIR: Flags thin briefs and attempts a single
+//   targeted re-enrichment before giving up. Passive flagging alone wastes
+//   the information that something went wrong.
+//
+// Dedup: Two passes. First pass: normalized headline fingerprint (catches
+//   exact or near-exact matches). Second pass: numeric fingerprint (catches
+//   same story with different headlines — both articles cite "₹12,400 crore"
+//   and "6.5%" → almost certainly the same story from two papers).
+// ═══════════════════════════════════════════════════════════════════════════
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 1: DISCOVER
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DISCOVER_PROMPT = `You are building a complete index of every editorial article in these newspaper pages.
+
+YOUR ONLY TASK: List every article headline you can see. Do not summarise. Do not evaluate importance.
+
+INCLUDE everything that is editorial content:
+- Business, markets, economy, RBI, government, policy, regulation
+- Corporate earnings, results, deals, M&A, IPOs, fundraising
+- Banking, NBFC, insurance, fintech
+- Technology, AI, startups, venture capital
+- Manufacturing, infrastructure, energy, commodities
+- Global macroeconomics and geopolitics affecting India
+- Opinion columns and editorial analysis
+- Any article with a byline (author credit) is editorial, include it
+
+EXCLUDE only:
+- Classified advertisements and display ads (no headline, just promotional copy)
+- Event/conference promotion boxes
+- TV schedules, weather tables, sports scorecards, crosswords, puzzles
+
+CRITICAL RULES:
+- Copy the headline EXACTLY as printed — do not paraphrase, capitalise differently, or correct grammar
+- If a headline is partially obscured, write as much as is legible followed by [...]
+- When in doubt, include. A missed article cannot be recovered. A duplicate can be removed.
+- A typical 20-page business newspaper has 30-60 editorial articles. If you find fewer than 15, you are under-counting.
+
+DATE: Read the masthead carefully. Extract the publication date if visible.
+
+Return ONLY valid JSON. No explanation, no commentary before or after the JSON:
+{
+  "date": "Date from masthead exactly as printed, e.g. 'Monday, 14 July 2026', or empty string",
+  "articles": [
+    {
+      "headline": "Exact headline as printed",
+      "byline": "Author name exactly as printed, or empty string if not shown",
+      "page_hint": "Brief location note, e.g. 'Front page lead', 'P3 top-right', 'Edit page'"
+    }
+  ]
+}`;
+
+async function discoverFromBatch(images, pageNums, fileLabel) {
+  const parts = [
+    {
+      text: `These are pages ${pageNums.join(', ')} of ${fileLabel}. List every editorial article headline visible on these pages.`
+    },
+    ...images.map(img => ({ inlineData: { mimeType: 'image/jpeg', data: img } }))
+  ];
+  const result = await callGemini(DISCOVER_PROMPT, parts, { asJson: true, temperature: 0.05 });
+  return {
+    date:     (typeof result.date === 'string') ? result.date.trim() : '',
+    articles: Array.isArray(result.articles)   ? result.articles     : [],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 2: ENRICH — one article per call
+//
+// Why one per call: when multiple articles are sent together, the model
+// must visually locate each article on the same crowded page, then
+// switch context between them. Brief quality degrades measurably — numbers
+// from one article bleed into another, and bodies get truncated to "fit".
+// One call per article is slower but produces consistently better output.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ENRICH_PROMPT = `You are a senior business journalist. Your task is to produce two editorial outputs for one specific newspaper article.
+
+THE ARTICLE YOU ARE LOOKING FOR:
+Headline: "{{HEADLINE}}"{{BYLINE_LINE}}
+Location hint: {{PAGE_HINT}}
+
+Find this article in the newspaper page images. Then produce:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT 1 — EXECUTIVE BRIEF (120–150 words, hard limits)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write one continuous paragraph. Structure it in this exact order:
+1. What happened — one declarative sentence naming the company/institution and the action
+2. The context or trigger — why this happened now, what decision or event caused it
+3. The business consequence — what changes as a result, for whom, by how much
+4. The numbers — every figure in the article: percentages, rupee/dollar amounts, volumes, dates, growth rates, targets
+5. The forward look — what to watch next, if the article mentions one
+
+Style rules — these are non-negotiable:
+- Active voice throughout. "The RBI cut rates" not "Rates were cut by the RBI"
+- Every sentence must add information not present in the previous sentence
+- No filler: do not write "it is worth noting", "in a significant development", "this marks a major milestone"
+- No repetition of the headline
+- Numbers are more important than adjectives. "₹4,200 crore" beats "a significant amount"
+- If the article contains a direct quote that is central to the story, include it in quotation marks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT 2 — FULL ARTICLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Reproduce the complete article text. Rules:
+- Every paragraph, in original order
+- Every number, name, company, date, and percentage exactly as printed
+- Every direct quote in quotation marks, attributed to the speaker
+- If a word or phrase is unclear in the image, write [unclear] — never guess
+- Do not add your own analysis, context, or opinion
+- Do not truncate. If the article continues across columns or pages, follow it
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT 3 — CATEGORY & METADATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Assign the single most accurate category from this list based on the article's PRIMARY subject:
+MARKETS — stock/bond/currency/commodity price movements and trading data
+ECONOMY — GDP, inflation, employment, trade balance, fiscal data, macro trends
+BANKING — banks, NBFCs, credit, deposits, NPA, lending rates
+POLICY — government policy, regulation, legislation, ministry decisions
+CORPORATE — company strategy, management, operations (not primarily financial results)
+TECHNOLOGY — software, hardware, platforms, digital transformation
+AI — artificial intelligence, machine learning, generative AI
+STARTUPS — early-stage companies, venture funding, founder stories
+GLOBAL — international events and their impact on India
+ENERGY — oil, gas, renewables, power sector, electricity
+HEALTHCARE — pharma, hospitals, health policy, medical devices
+AUTO — automotive industry, EVs, vehicle sales
+MFG — manufacturing, industrial output, factory data
+MA — mergers, acquisitions, stake sales, business combinations
+IPO — public listings, SEBI filings, grey market, listing gains
+RBI — Reserve Bank of India monetary policy, circulars, regulations
+OPINION — editorial, column, analysis piece (author's views, not news)
+
+Return ONLY valid JSON, no other text:
+{
+  "brief": "120-150 word executive brief as one paragraph",
+  "body": "Complete article text with paragraphs separated by newline characters",
+  "category": "ONE category from the list above",
+  "found": true
+}
+
+If you cannot locate this specific article in the images, return:
+{"brief": "", "body": "", "category": "CORPORATE", "found": false}`;
+
+async function enrichOne(article, images) {
+  const bylineLine = article.byline ? `\nByline: "${article.byline}"` : '';
+  const pageHint   = article.page_hint || 'not specified';
+
+  const prompt = ENRICH_PROMPT
+    .replace('{{HEADLINE}}',  article.headline)
+    .replace('{{BYLINE_LINE}}', bylineLine)
+    .replace('{{PAGE_HINT}}', pageHint);
+
+  const parts = [
+    { text: `Find the article with headline "${article.headline}" in these newspaper pages and produce the required outputs.` },
+    ...images.map(img => ({ inlineData: { mimeType: 'image/jpeg', data: img } }))
+  ];
+
+  const result = await callGemini(prompt, parts, { asJson: true, temperature: 0.1 });
+
+  return {
+    headline: article.headline,
+    byline:   article.byline  || '',
+    category: (typeof result.category === 'string' && result.category.trim()) ? result.category.trim() : 'CORPORATE',
+    brief:    (typeof result.brief === 'string') ? result.brief.trim() : '',
+    body:     (typeof result.body  === 'string') ? result.body.trim()  : '',
+    found:    result.found !== false,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 3: RANK — weighted multi-dimensional scoring
+//
+// Key design decisions vs. previous version:
+// 1. Full brief sent to ranker (not .slice(0,200)) — ranker needs the numbers
+// 2. Batch reduced to 15 — scoring quality degrades above ~15 articles
+// 3. Peak dimension bonus — an article that scores 10 on one dimension
+//    (e.g., RBI rate change) should rank #1 even if it scores 3 on others
+// 4. MBA weight raised to 12% — this is explicitly an MBA product
+// 5. information_novelty removed — the ranker can't assess novelty without
+//    access to previous editions; it was scoring randomly
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RANK_PROMPT = `You are the editor-in-chief of a business newspaper deciding which stories lead the front page.
+
+Score each article on 7 dimensions (0–10 each). You are scoring for an Indian MBA student audience.
+
+DIMENSIONS — score each independently, do not let one influence another:
+
+1. market_impact
+   What is the immediate effect on equity prices, bond yields, currency rates, or commodity prices?
+   0 = No market effect | 5 = Moves one stock or sector | 9 = Nifty/Sensex moves | 10 = Circuit breaker/trading halt
+
+2. macro_significance
+   What is the effect on the broader Indian economy — GDP, inflation, employment, trade, fiscal balance?
+   0 = No macro effect | 5 = Affects one sector's output | 8 = Nationwide economic shift | 10 = Budget/crisis-level event
+
+3. policy_weight
+   How significant is the government or regulatory action being reported?
+   0 = No policy content | 4 = Minor circular/notification | 7 = Major sectoral policy | 10 = Union Budget/RBI rate decision
+
+4. corporate_materiality
+   How material is this for listed companies — earnings impact, valuation, M&A, management change?
+   0 = No listed company angle | 4 = Minor update for one firm | 7 = Significant for Nifty 50 constituent | 10 = Index-level event
+
+5. stakeholder_reach
+   How many people or businesses are directly affected?
+   0 = Affects fewer than 1,000 people | 5 = Affects one industry | 8 = Affects all businesses | 10 = Affects every Indian household
+
+6. strategic_depth
+   How significant is this for India's 5-10 year economic and business trajectory?
+   0 = No long-term relevance | 5 = Medium-term sector impact | 8 = Structural economic shift | 10 = Generational change
+
+7. mba_classroom_value
+   How useful is this article as current affairs knowledge or a case study for an MBA student?
+   0 = Not useful | 4 = Useful background | 7 = Strong current affairs knowledge | 10 = Landmark case study
+
+CALIBRATION — read these before scoring:
+- Score 9–10: Once-a-month or rarer events. Budget, RBI rate cut, major bank collapse, Nifty -4% day.
+- Score 7–8: Significant. Large merger (>₹5,000 crore), major policy shift, Nifty 500 company earnings miss.
+- Score 5–6: Useful. Mid-cap corporate news, sector policy update, meaningful macro data release.
+- Score 3–4: Minor. Small company news, incremental follow-up, routine regulatory filing.
+- Score 0–2: Not relevant or purely routine.
+
+CONSISTENCY RULE: If you score article A higher than article B on market_impact, A must have a more direct and larger effect on market prices than B. Do not drift — review earlier scores before assigning new ones.
+
+Articles to score:
+{{ARTICLE_LIST}}
+
+Return ONLY a JSON array with exactly {{COUNT}} objects in the same order as the input:
+[
+  {
+    "market_impact": <integer 0-10>,
+    "macro_significance": <integer 0-10>,
+    "policy_weight": <integer 0-10>,
+    "corporate_materiality": <integer 0-10>,
+    "stakeholder_reach": <integer 0-10>,
+    "strategic_depth": <integer 0-10>,
+    "mba_classroom_value": <integer 0-10>,
+    "rationale": "One sentence: the single most important fact that explains why this article ranks where it does"
+  }
+]`;
+
+// Weights must sum to 1.0
+// MBA weight is elevated because this is explicitly an MBA product
+const RANK_WEIGHTS = {
+  market_impact:        0.22,
+  macro_significance:   0.18,
+  policy_weight:        0.16,
+  corporate_materiality:0.14,
+  stakeholder_reach:    0.10,
+  strategic_depth:      0.08,
+  mba_classroom_value:  0.12,
+};
+
+function computeRankScore(scores) {
+  let weighted = 0;
+  for (const [dim, weight] of Object.entries(RANK_WEIGHTS)) {
+    weighted += (scores[dim] || 0) * weight;
+  }
+  // Peak bonus: if any single dimension scores 9+, the article gets a 0.5 point
+  // boost. This prevents a genuinely landmark story from being buried because
+  // it scores low on unrelated dimensions (e.g., RBI rate change has low
+  // corporate_materiality for individual firms but is clearly a top story).
+  const peak = Math.max(...Object.keys(RANK_WEIGHTS).map(d => scores[d] || 0));
+  const peakBonus = peak >= 9 ? 0.5 : peak >= 8 ? 0.25 : 0;
+  return Math.round((weighted + peakBonus) * 10) / 10;
+}
+
+async function rankArticles(articles) {
+  const RANK_BATCH = 15;
+  const ranked = [...articles];
+
+  for (let g = 0; g < articles.length; g += RANK_BATCH) {
+    const group = articles.slice(g, g + RANK_BATCH);
+
+    // Feed the full brief to the ranker — not a truncated excerpt
+    const articleList = group.map((a, i) =>
+      `Article ${i + 1}:\nCategory: ${a.category}\nHeadline: "${a.headline}"\nBrief: ${a.brief || '(no brief available)'}`
+    ).join('\n\n');
+
+    const prompt = RANK_PROMPT
+      .replace('{{ARTICLE_LIST}}', articleList)
+      .replace('{{COUNT}}', group.length);
+
+    try {
+      const result = await callGemini(prompt, [{ text: articleList }], { asJson: true, temperature: 0.05 });
+      const arr = Array.isArray(result) ? result : [];
+      for (let i = 0; i < group.length; i++) {
+        const scores   = arr[i] || {};
+        const rankScore = computeRankScore(scores);
+        // Map score to importance tier for backward compatibility with reader
+        let importance;
+        if (rankScore >= 6.5)      importance = 1;  // Priority
+        else if (rankScore >= 4.5) importance = 2;  // Priority
+        else if (rankScore >= 3.0) importance = 3;  // Important
+        else if (rankScore >= 1.5) importance = 4;  // Also Today
+        else                        importance = 5;  // Also Today
+
+        ranked[g + i] = {
+          ...ranked[g + i],
+          importance,
+          rank_score:    rankScore,
+          rank_scores:   scores,
+          rank_rationale: typeof scores.rationale === 'string' ? scores.rationale : '',
+        };
+      }
+    } catch (e) {
+      log(`Ranking batch ${g}–${g + RANK_BATCH} failed: ${e.message} — assigning default scores`);
+      for (let i = 0; i < group.length; i++) {
+        ranked[g + i] = { ...ranked[g + i], importance: 3, rank_score: 3.0 };
+      }
+    }
+
+    if (g + RANK_BATCH < articles.length) await sleep(3000);
+  }
+
+  return ranked.sort((a, b) => (b.rank_score || 0) - (a.rank_score || 0));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 4: VERIFY + REPAIR
+//
+// Changed from previous version: if a brief fails QC, attempt one targeted
+// re-enrichment call with the failure reason included in the prompt.
+// This converts a passive flag into an active repair. The repair call sends
+// the same images with an explicit instruction about what went wrong.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VERIFY_PROMPT = `You are a copy editor at a business newspaper. Review each executive brief below for publication quality.
+
+REJECT a brief if it has ANY of these problems:
+- Fewer than 80 words
+- Opens with the headline repeated as a sentence (e.g. "Tata Motors reported...")
+- Contains filler phrases: "it is worth noting", "in a significant development", "this is an important", "this article", "this report"
+- Contains no specific numbers (no percentages, no rupee amounts, no quantities, no dates)
+- Contains no company names, institution names, or named individuals
+- Describes what an article "covers" or "discusses" rather than stating what happened
+- The content does not match the headline — it appears to be about a different story
+
+PASS everything else. When in doubt, pass.
+
+Articles to review:
+{{ARTICLE_LIST}}
+
+Return ONLY a JSON array with exactly {{COUNT}} objects:
+[
+  {
+    "pass": true,
+    "issue": ""
+  }
+]
+or for failures:
+[
+  {
+    "pass": false,
+    "issue": "Specific problem in 10 words or fewer"
+  }
+]`;
+
+const REPAIR_PROMPT = `You are a senior editor rewriting a failed executive brief.
+
+The original brief was rejected by the copy desk for this reason: "{{ISSUE}}"
+
+Article headline: "{{HEADLINE}}"
+
+Rewrite the brief from scratch. Do not fix the old brief — write a new one.
+
+Requirements:
+- 120–150 words, one paragraph
+- Opens with what happened (company/institution + action + number if available)
+- Includes every number from the article: percentages, rupee/dollar amounts, volumes, dates
+- Active voice throughout
+- No filler phrases, no repetition of the headline, no meta-commentary
+- If you cannot find specific numbers in the brief, write "Data not available in source" at the end
+
+Return ONLY valid JSON:
+{"brief": "rewritten brief here"}`;
+
+async function verifyAndRepairArticles(articles, allImages) {
+  const VERIFY_BATCH = 20;
+  const result = [...articles];
+
+  for (let g = 0; g < articles.length; g += VERIFY_BATCH) {
+    const group = articles.slice(g, g + VERIFY_BATCH);
+    const list  = group.map((a, i) =>
+      `${i + 1}. HEADLINE: "${a.headline}"\nBRIEF: ${a.brief || '(empty)'}`
+    ).join('\n\n');
+
+    const prompt = VERIFY_PROMPT
+      .replace('{{ARTICLE_LIST}}', list)
+      .replace('{{COUNT}}', group.length);
+
+    try {
+      const vResult = await callGemini(prompt, [{ text: list }], { asJson: true, temperature: 0.05 });
+      const arr = Array.isArray(vResult) ? vResult : [];
+
+      for (let i = 0; i < group.length; i++) {
+        const v   = arr[i] || { pass: true, issue: '' };
+        const idx = g + i;
+        if (!v.pass && v.issue) {
+          log(`  QC [${group[i].headline.slice(0,45)}]: ${v.issue} — attempting repair…`);
+          // Attempt repair
+          try {
+            const repairPrompt = REPAIR_PROMPT
+              .replace('{{ISSUE}}',    v.issue)
+              .replace('{{HEADLINE}}', group[i].headline);
+            // Use the article's page images for repair if available
+            const repairImages = (group[i]._imageIdxs || []).map(idx => allImages[idx]).filter(Boolean);
+            const repairParts  = repairImages.length
+              ? [{ text: repairPrompt }, ...repairImages.map(img => ({ inlineData: { mimeType: 'image/jpeg', data: img } }))]
+              : [{ text: repairPrompt + '\n\nOriginal brief to improve:\n' + group[i].brief }];
+            const repaired = await callGemini(repairPrompt, repairParts, { asJson: true, temperature: 0.2 });
+            if (repaired?.brief && repaired.brief.length > 60) {
+              result[idx] = { ...result[idx], brief: repaired.brief.trim(), _repaired: true };
+              log(`    ✓ Repaired: ${repaired.brief.slice(0,60)}…`);
+            } else {
+              result[idx]._qc_issue = v.issue;
+              log(`    ✗ Repair produced no usable brief — keeping original`);
+            }
+          } catch (repairErr) {
+            result[idx]._qc_issue = v.issue;
+            log(`    ✗ Repair failed: ${repairErr.message}`);
+          }
+          await sleep(2000);
+        }
+      }
+    } catch (e) {
+      log(`Verify batch ${g} failed: ${e.message} — skipping QC`);
+    }
+
+    if (g + VERIFY_BATCH < articles.length) await sleep(2000);
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deduplication — two passes
+//
+// Pass 1: Headline fingerprint (catches exact/near-exact matches)
+// Pass 2: Numeric fingerprint (catches same story, different headline)
+//   Extract all numbers from each brief. If two briefs share 3+ identical
+//   numbers (and neither is an empty brief), they almost certainly cover
+//   the same story. Keep the higher-ranked one (lower importance score).
+// ─────────────────────────────────────────────────────────────────────────────
+function extractNumbers(text) {
+  // Extract numeric strings: percentages, crore/lakh/million amounts, bare numbers >100
+  const matches = (text || '').match(/[\d,]+\.?\d*\s*(?:%|crore|lakh|million|billion|cr\b|mn\b)?/gi) || [];
+  return new Set(matches.map(m => m.toLowerCase().replace(/\s+/g, '').replace(/,/g, '')));
+}
+
+function deduplicateArticles(articles) {
+  // Pass 1: headline fingerprint
+  const seenHeadlines = new Map();
+  const pass1 = [];
+  for (const a of articles) {
+    const key = a.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 55);
+    if (!seenHeadlines.has(key)) {
+      seenHeadlines.set(key, true);
+      pass1.push(a);
+    } else {
+      log(`Dup (headline): "${a.headline.slice(0, 55)}"`);
+    }
+  }
+
+  // Pass 2: numeric fingerprint
+  const result = [];
+  const numericFingerprints = [];
+  for (const a of pass1) {
+    const nums = extractNumbers(a.brief + ' ' + a.headline);
+    if (nums.size < 2) {
+      // Too few numbers to fingerprint — keep unconditionally
+      result.push(a);
+      numericFingerprints.push(nums);
+      continue;
+    }
+    let isDup = false;
+    for (let j = 0; j < numericFingerprints.length; j++) {
+      const existing = numericFingerprints[j];
+      // Count overlap
+      let overlap = 0;
+      for (const n of nums) { if (existing.has(n)) overlap++; }
+      if (overlap >= 3) {
+        isDup = true;
+        log(`Dup (numeric): "${a.headline.slice(0, 55)}" overlaps with "${result[j].headline.slice(0, 45)}"`);
+        break;
+      }
+    }
+    if (!isDup) {
+      result.push(a);
+      numericFingerprints.push(nums);
+    }
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Date parsing
+// ─────────────────────────────────────────────────────────────────────────────
+function parsePaperDate(dateStr) {
+  if (!dateStr) return null;
+  // Try direct JS parsing (handles "14 July 2026", "July 14, 2026", ISO strings)
+  const d = new Date(dateStr);
+  if (!isNaN(d)) return d;
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Process one PDF through all stages
+// ─────────────────────────────────────────────────────────────────────────────
 async function processOnePDF(file, allArticles, detectedDate) {
   log(`\n── ${file.name} ──`);
-  const images = await pdfToImages(file);
-  const BATCH=5, OVERLAP=1;
-  const discovered=[], seen=new Set();
-  let date='';
 
-  for (let s=0;s<images.length;s+=(BATCH-OVERLAP)) {
-    const pages=images.slice(s,s+BATCH);
-    const pageNums=Array.from({length:pages.length},(_,i)=>s+i+1);
-    setProc(`Discovering articles… pages ${pageNums[0]}-${pageNums[pageNums.length-1]}`,24+Math.round((s/images.length)*20),`${discovered.length} found`);
-    const parts=[{text:`Scan pages ${pageNums.join(',')} of ${images.length} from ${file.name}.`},...pages.map(img=>({inlineData:{mimeType:'image/jpeg',data:img}}))];
-    const r = await callGemini(DISCOVER_SYSTEM, parts, true);
-    if(r?.date&&!date) date=r.date;
-    for(const a of (r?.articles||[])){
-      if(!a.headline||a.headline.length<6) continue;
-      const key=a.headline.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,50);
-      if(seen.has(key)) continue;
-      seen.add(key);
-      discovered.push({...a,_start:s,_end:Math.min(s+BATCH,images.length)});
+  // Render pages
+  setProc(`Rendering ${file.name}…`, 5, 'Converting PDF to images…');
+  const { images, total } = await pdfToImages(file, (i, t) => {
+    setProc(`Rendering ${file.name} — page ${i}/${t}`, Math.round((i / t) * 20), `Page ${i} of ${t}`);
+  });
+  log(`Rendered: ${total} pages`);
+
+  // ── STAGE 1: DISCOVER ──
+  setStage('discover');
+  const BATCH = 5, OVERLAP = 1;
+  const discovered = [], seenHeadlines = new Set();
+  let fileDate = '';
+
+  for (let s = 0; s < images.length; s += (BATCH - OVERLAP)) {
+    const pageNums = Array.from({ length: Math.min(BATCH, images.length - s) }, (_, i) => s + i + 1);
+    const batchImages = pageNums.map(p => images[p - 1]).filter(Boolean);
+    if (!batchImages.length) continue;
+
+    setProc(`Discovering articles… pages ${pageNums[0]}–${pageNums.at(-1)}`,
+      20 + Math.round((s / images.length) * 15),
+      `${discovered.length} found so far`);
+
+    try {
+      const { date, articles } = await discoverFromBatch(batchImages, pageNums, file.name);
+      if (date && !fileDate) fileDate = date;
+      for (const a of articles) {
+        if (!a.headline || a.headline.length < 5) continue;
+        const key = a.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
+        if (!seenHeadlines.has(key)) {
+          seenHeadlines.add(key);
+          discovered.push({ ...a, _pageStart: s, _pageEnd: Math.min(s + BATCH, images.length), _source: file.name.replace(/\.pdf$/i, '') });
+        }
+      }
+    } catch (e) {
+      log(`Discovery batch p${pageNums[0]}–${pageNums.at(-1)} failed: ${e.message}`);
     }
-    if(s+(BATCH-OVERLAP)<images.length) await new Promise(r=>setTimeout(r,4000));
+
+    if (s + BATCH - OVERLAP < images.length) await sleep(3000);
   }
+
   log(`Discovery: ${discovered.length} articles found`);
-  if(!detectedDate.value&&date) detectedDate.value=date;
-  // Pause before enrichment to avoid rate limiting
-  log('Pausing 10s before enrichment...');
-  await new Promise(r=>setTimeout(r,10000));
+  if (!detectedDate.value && fileDate) detectedDate.value = fileDate;
 
-  const ENRICH=3, totalG=Math.ceil(discovered.length/ENRICH);
-  for(let g=0;g<discovered.length;g+=ENRICH){
-    const group=discovered.slice(g,g+ENRICH);
-    const gn=Math.floor(g/ENRICH)+1;
-    setProc(`Enriching articles… group ${gn}/${totalG}`,45+Math.round((g/discovered.length)*45),`${allArticles.length} complete`);
-    const pageIdxs=[...new Set(group.flatMap(a=>Array.from({length:a._end-a._start},(_,i)=>a._start+i)))].slice(0,5);
-    const imgs=pageIdxs.map(i=>images[i]).filter(Boolean);
-    const list=group.map((a,i)=>`${i+1}. "${a.headline}"${a.byline?` by ${a.byline}`:''}`).join('\n');
-    const parts=[{text:`Enrich these ${group.length} articles from ${file.name}:\n${list}\nReturn array of ${group.length} objects.`},...imgs.map(img=>({inlineData:{mimeType:'image/jpeg',data:img}}))];
-    const res=await callGemini(ENRICH_SYSTEM,parts,true);
-    const arr=Array.isArray(res)?res:(res?.articles||[]);
-    for(let i=0;i<group.length;i++){
-      const r=arr[i]||{};
-      allArticles.push({headline:group[i].headline,byline:group[i].byline||'',category:group[i].category||'CORPORATE',importance:parseInt(r.importance)||3,brief:r.brief||'',body:r.body||'',source:file.name.replace('.pdf','')});
-    }
-    if(g+ENRICH<discovered.length) await new Promise(r=>setTimeout(r,5000)); // 5s between enrichment calls
+  if (!discovered.length) {
+    log(`WARNING: No articles found in ${file.name}. Skipping enrichment.`);
+    return;
   }
-  log(`Enrichment done: ${discovered.length} articles`);
+
+  // ── STAGE 2: ENRICH — one article per call ──
+  setStage('enrich');
+  log('\nPausing 6s before enrichment…');
+  await sleep(6000);
+
+  for (let i = 0; i < discovered.length; i++) {
+    const a = discovered[i];
+    setProc(
+      `Enriching article ${i + 1} of ${discovered.length}…`,
+      35 + Math.round((i / discovered.length) * 30),
+      `"${a.headline.slice(0, 50)}"`
+    );
+
+    // Gather the pages where this article appears (plus one page either side
+    // in case the article continues across a page boundary)
+    const start = Math.max(0, a._pageStart - 1);
+    const end   = Math.min(images.length, a._pageEnd + 1);
+    const imageIdxs = Array.from({ length: end - start }, (_, j) => start + j);
+    const articleImages = imageIdxs.map(idx => images[idx]).filter(Boolean);
+
+    try {
+      const enriched = await enrichOne(a, articleImages);
+      if (!enriched.found) {
+        log(`  Not found: "${a.headline.slice(0, 50)}" — keeping stub`);
+      }
+      allArticles.push({
+        ...enriched,
+        source:      a._source,
+        _imageIdxs:  imageIdxs,
+        _pageStart:  a._pageStart,
+        _pageEnd:    a._pageEnd,
+      });
+    } catch (e) {
+      log(`  Enrich failed: "${a.headline.slice(0, 45)}" — ${e.message}`);
+      allArticles.push({
+        headline: a.headline, byline: a.byline || '', category: 'CORPORATE',
+        brief: '', body: '', source: a._source, found: false,
+        _imageIdxs: imageIdxs,
+      });
+    }
+
+    // Rate limit: 2s between calls. Increase to 4s every 10 articles to avoid
+    // sustained rate limiting on free-tier keys.
+    if (i < discovered.length - 1) {
+      await sleep((i + 1) % 10 === 0 ? 6000 : 2500);
+    }
+  }
+
+  log(`Enrichment complete: ${discovered.length} articles`);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Main entry point
+// ─────────────────────────────────────────────────────────────────────────────
 async function startProcessing() {
-  const gkey = localStorage.getItem('db_admin_gemini');
-  if(!gkey) { showToast('Set your Gemini key first'); return; }
-  if(!selectedFiles.length) { showToast('Select PDFs first'); return; }
+  if (!isLoggedIn()) { showToast('Session expired — please log in again'); location.reload(); return; }
+
+  const gkey = getGKey();
+  if (!gkey) { showToast('Set your Gemini API key first'); return; }
+  if (!selectedFiles.length) { showToast('Select at least one PDF'); return; }
 
   document.getElementById('process-btn').disabled = true;
   document.getElementById('proc-area').style.display = 'block';
-  document.getElementById('proc-log').innerHTML = '';
-  geminiModel = null;
+  document.getElementById('proc-log').textContent = '';
+  resolvedModel = null;
 
   const allArticles = [];
-  const detectedDate = {value:''};
+  const detectedDate = { value: '' };
 
   try {
-    for(const file of selectedFiles) await processOnePDF(file, allArticles, detectedDate);
-
-    // Dedup
-    const seen=new Set(), deduped=[];
-    for(const a of allArticles){
-      const k=a.headline.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,50);
-      if(!seen.has(k)){seen.add(k);deduped.push(a);}
+    // Process each PDF through stages 1–2
+    for (const file of selectedFiles) {
+      await processOnePDF(file, allArticles, detectedDate);
     }
-    deduped.sort((a,b)=>(a.importance||3)-(b.importance||3));
 
-    // Date
-    let dateKey=new Date().toISOString().slice(0,10);
-    let displayDate='';
-    if(detectedDate.value){
-      for(const fmt of ['%d %B %Y','%B %d, %Y','%d %b %Y']){
-        // Simple parser
-        const m=detectedDate.value.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/)||detectedDate.value.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
-        if(m){
-          const d=new Date(detectedDate.value);
-          if(!isNaN(d)){dateKey=d.toISOString().slice(0,10);displayDate=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});break;}
-        }
-      }
+    if (!allArticles.length) throw new Error('No articles extracted from any PDF. Check that the files are readable newspaper PDFs.');
+
+    // Cross-PDF dedup
+    const deduped = deduplicateArticles(allArticles);
+    log(`\nAfter dedup: ${deduped.length} articles`);
+
+    // ── STAGE 3: RANK ──
+    setStage('rank');
+    setProc('Ranking articles…', 68, `Scoring ${deduped.length} articles across 8 dimensions…`);
+    log('\nStarting multi-dimensional ranking…');
+    await sleep(4000);
+    const ranked = await rankArticles(deduped);
+    log(`Ranking complete. Top article: "${ranked[0]?.headline?.slice(0, 60)}"`);
+
+    // ── STAGE 4: VERIFY + REPAIR ──
+    setStage('verify');
+    setProc('Verifying quality…', 84, 'Checking briefs, repairing where needed…');
+    log('\nRunning quality verification and repair…');
+    await sleep(2000);
+    // Pass an empty image array — repair uses stored _imageIdxs which reference
+    // per-file images that are no longer in scope here. The repair prompt falls
+    // back to text-only mode gracefully when no images are provided.
+    const verified = await verifyAndRepairArticles(ranked, []);
+    const flagged  = verified.filter(a => a._qc_issue).length;
+    const repaired = verified.filter(a => a._repaired).length;
+    log(`QC complete. ${repaired} repaired, ${flagged} still flagged.`);
+
+    // ── STAGE 5: SAVE ──
+    setStage('save');
+    setProc('Saving to database…', 90, `${verified.length} articles`);
+
+    // Parse date
+    let dateKey = new Date().toISOString().slice(0, 10);
+    let displayDate = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const parsedDate = parsePaperDate(detectedDate.value);
+    if (parsedDate) {
+      dateKey = parsedDate.toISOString().slice(0, 10);
+      displayDate = parsedDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
-    if(!displayDate) displayDate=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    log(`\nDate: ${displayDate} (${dateKey})`);
 
-    setProc('Saving to database…',92,`${deduped.length} articles`);
-    log(`\nSaving ${deduped.length} articles to Supabase…`);
-
-    // Try to find existing edition first, then insert or update
-    const {data:existingEd} = await sb.from('editions').select('id').eq('date_key',dateKey).maybeSingle();
+    // Upsert edition
+    const sources = [...new Set(verified.map(a => a.source).filter(Boolean))];
+    const { data: existingEd } = await sb.from('editions').select('id').eq('date_key', dateKey).maybeSingle();
     let ed;
-    if(existingEd?.id) {
-      // Update existing
-      const {data:updEd,error:updErr} = await sb.from('editions')
-        .update({display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))})
-        .eq('date_key',dateKey).select().single();
-      if(updErr) throw new Error('Edition update failed: '+updErr.message);
-      ed = updEd;
-      // Delete old articles for this edition
-      await sb.from('articles').delete().eq('edition_id',ed.id);
-      log(`Updating existing edition: ${dateKey}`);
+
+    if (existingEd?.id) {
+      const { data, error } = await sb.from('editions')
+        .update({ display_date: displayDate, article_count: verified.length, sources })
+        .eq('date_key', dateKey).select().single();
+      if (error) throw new Error('Edition update failed: ' + error.message);
+      ed = data;
+      await sb.from('articles').delete().eq('edition_id', ed.id);
+      log('Updating existing edition…');
     } else {
-      // Insert new
-      const {data:newEd,error:insErr} = await sb.from('editions')
-        .insert({date_key:dateKey,display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))})
+      const { data, error } = await sb.from('editions')
+        .insert({ date_key: dateKey, display_date: displayDate, article_count: verified.length, sources })
         .select().single();
-      if(insErr) throw new Error('Edition save failed: '+insErr.message);
-      ed = newEd;
-      log(`New edition created: ${dateKey}`);
+      if (error) throw new Error('Edition insert failed: ' + error.message);
+      ed = data;
+      log('New edition created…');
     }
 
-    // Insert articles in chunks
-    const CHUNK=50;
-    for(let i=0;i<deduped.length;i+=CHUNK){
-      const rows=deduped.slice(i,i+CHUNK).map(a=>({edition_id:ed.id,date_key:dateKey,...a}));
-      const {data:insData, error}=await sb.from('articles').insert(rows);
-      if(error) {
-        log(`ERROR chunk ${i}-${i+CHUNK}: ${error.message}`);
-        // Try inserting one by one to identify problem rows
-        for(const row of rows) {
-          const {error:e2} = await sb.from('articles').insert(row);
-          if(e2) log(`  Skip: ${row.headline?.slice(0,40)} — ${e2.message}`);
+    // Insert articles in chunks of 25
+    const CHUNK = 25;
+    let saved = 0;
+    for (let i = 0; i < verified.length; i += CHUNK) {
+      const rows = verified.slice(i, i + CHUNK).map(a => ({
+        edition_id:      ed.id,
+        date_key:        dateKey,
+        headline:        a.headline,
+        byline:          a.byline || '',
+        category:        a.category || 'CORPORATE',
+        importance:      a.importance || 3,
+        rank_score:      a.rank_score || null,
+        brief:           a.brief || '',
+        body:            a.body || '',
+        source:          a.source || '',
+        rank_rationale:  a.rank_rationale || '',
+      }));
+
+      const { error } = await sb.from('articles').insert(rows);
+      if (error) {
+        log(`Chunk ${i}–${i + CHUNK} insert error: ${error.message}`);
+        // Fall back to row-by-row to maximise save rate
+        for (const row of rows) {
+          const { error: e2 } = await sb.from('articles').insert(row);
+          if (e2) log(`  Skip "${row.headline?.slice(0, 40)}": ${e2.message}`);
+          else saved++;
         }
+      } else {
+        saved += rows.length;
       }
-      setProc('Saving articles…',93+Math.round((i/deduped.length)*5),`${Math.min(i+CHUNK,deduped.length)}/${deduped.length} saved`);
+      setProc('Saving articles…', 90 + Math.round((i / verified.length) * 9), `${Math.min(i + CHUNK, verified.length)}/${verified.length} saved`);
     }
 
-    await sb.from('editions').update({article_count:deduped.length}).eq('id',ed.id);
-    setProc('Done!',100,`${deduped.length} articles published`);
-    log(`\n✓ Complete! ${deduped.length} articles for ${displayDate}`);
-    showToast(`Published — ${deduped.length} articles`);
-    loadStats(); loadEditions();
-    selectedFiles=[];
-    updateFileList();
+    // Update final count
+    await sb.from('editions').update({ article_count: saved }).eq('id', ed.id);
 
-  } catch(err) {
-    setProc('Error',0,'');
-    log(`ERROR: ${err.message}`);
-    showToast('Error: '+err.message);
+    setProc('Published ✓', 100, `${saved} articles live`);
+    log(`\n✓ Done! ${saved} articles published for ${displayDate}`);
+    if (flagged) log(`  (${flagged} articles had QC flags — review the log above)`);
+
+    showToast(`Published — ${saved} articles`);
+    loadStats();
+    loadEditions();
+    selectedFiles = [];
+    updateFileUI();
+
+  } catch (err) {
+    setProc('Failed', 0, '');
+    log(`\nERROR: ${err.message}`);
+    showToast('Error: ' + err.message);
   } finally {
     document.getElementById('process-btn').disabled = false;
   }
 }
 
-function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2500)}
+// Wire up process button
+document.getElementById('process-btn').addEventListener('click', startProcessing);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('on'), 3000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unhandled errors — show in log without leaking stack traces to UI
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('unhandledrejection', e => {
+  const el = document.getElementById('proc-log');
+  if (el && el.style && el.parentElement?.style?.display !== 'none') {
+    el.textContent += `UNHANDLED: ${e.reason?.message || String(e.reason)}\n`;
+  }
+  console.error('Unhandled rejection:', e.reason);
+  e.preventDefault();
+});
 </script>
 </body>
 </html>
