@@ -415,7 +415,7 @@ function esc(s) {
 // MODULE: Config & Storage
 // ═══════════════════════════════════════════════════════════════════════════
 const STORE = {
-  KEY:      'mb2_gemini_key',
+  KEY:      'db2_chat_key',   // renamed from mb2_gemini_key to avoid stale key collision
   SAVED:    'mb2_saved',
   EDITIONS: 'mb2_editions',
 };
@@ -451,6 +451,7 @@ function saveKey() {
   if (!v) { showToast('Paste your API key first'); return; }
   if (v.length < 20) { showToast('Key looks too short'); return; }
   apiKey = v;
+  chatModel = null; // force re-resolution with new key
   localStorage.setItem(STORE.KEY, v);
   updateKeyUI();
   document.getElementById('cfg-panel').style.display = 'none';
