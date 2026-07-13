@@ -1137,52 +1137,51 @@ function exportMarkdown() {
 // ═══════════════════════════════════════════════════════════════════════════
 // MODULE: Gemini (chat only — no PDF processing in reader)
 // ═══════════════════════════════════════════════════════════════════════════
-const CHAT_MODELS = [
+// Preferred model order — first match found via ListModels wins
+const CHAT_MODEL_PREFERENCE = [
   'gemini-2.5-flash',
-  'gemini-2.5-flash-lite-preview-06-17',
+  'gemini-2.5-flash-lite',
+  'gemini-3.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
-  'gemini-1.5-flash-latest',
 ];
 let chatModel = null;
+
+async function resolveChatModel() {
+  // Call the ListModels endpoint to get what this key actually has access to.
+  // This is more reliable than probing a hardcoded list that goes stale.
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`,
+    { method: 'GET' }
+  );
+  if (r.status === 401 || r.status === 403) {
+    throw new Error('API key rejected. Get a valid key at aistudio.google.com');
+  }
+  if (!r.ok) {
+    throw new Error(`Could not list models (${r.status}). Check your key at aistudio.google.com`);
+  }
+  const data = await r.json();
+  const available = (data.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map(m => m.name.replace('models/', ''));
+
+  // Pick the first model from our preference list that's actually available
+  for (const preferred of CHAT_MODEL_PREFERENCE) {
+    if (available.some(a => a === preferred || a.startsWith(preferred))) {
+      return preferred;
+    }
+  }
+  // Fall back to the first available generateContent model
+  if (available.length > 0) return available[0];
+  throw new Error('No generateContent models available for this API key.');
+}
 
 async function callGeminiChat(systemPrompt, userText) {
   if (!apiKey) throw new Error('No API key set — use Config to add your Gemini key');
 
-  // Probe for a working model on first use.
-  // Log every failure so the user can see what's actually going wrong.
   if (!chatModel) {
-    let lastError = '';
-    for (const m of CHAT_MODELS) {
-      try {
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents:[{role:'user',parts:[{text:'Hi'}]}], generationConfig:{maxOutputTokens:5} })
-          }
-        );
-        if (r.ok) {
-          chatModel = m;
-          break;
-        }
-        // Read the actual error from the response
-        const errData = await r.json().catch(() => ({}));
-        lastError = `${m}: ${r.status} — ${errData?.error?.message || 'unknown'}`;
-        // 401/403 means the key itself is bad — no point trying other models
-        if (r.status === 401 || r.status === 403) {
-          throw new Error(`API key rejected (${r.status}). Get a valid key at aistudio.google.com`);
-        }
-      } catch (e) {
-        if (e.message.includes('API key rejected')) throw e;
-        lastError = `${m}: ${e.message}`;
-      }
-    }
-    if (!chatModel) {
-      throw new Error(`Could not connect to Gemini. Last error: ${lastError}. Check your key at aistudio.google.com`);
-    }
+    chatModel = await resolveChatModel();
   }
 
   const res = await fetch(
