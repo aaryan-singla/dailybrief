@@ -1150,74 +1150,47 @@ function exportMarkdown() {
 // MODULE: Gemini (chat only — no PDF processing in reader)
 // ═══════════════════════════════════════════════════════════════════════════
 // Preferred model order — first match found via ListModels wins
-const CHAT_MODEL_PREFERENCE = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-];
-
-async function resolveChatModel() {
-  // AQ. keys are OAuth-style and need Authorization: Bearer header.
-  // AIza. keys use the ?key= query param. Support both.
-  const isOAuth = apiKey.startsWith('AQ.');
-  const headers = {};
-  if (isOAuth) headers['Authorization'] = `Bearer ${apiKey}`;
-  const url = isOAuth
-    ? 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100'
-    : `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`;
-
-  const r = await fetch(url, { method: 'GET', headers });
-  if (r.status === 401 || r.status === 403) {
-    throw new Error('API key rejected. Get a valid key at aistudio.google.com');
-  }
-  if (!r.ok) {
-    throw new Error(`Could not list models (${r.status}). Check your key at aistudio.google.com`);
-  }
-  const data = await r.json();
-  const available = (data.models || [])
-    .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
-    .map(m => m.name.replace('models/', ''));
-
-  for (const preferred of CHAT_MODEL_PREFERENCE) {
-    if (available.some(a => a === preferred || a.startsWith(preferred))) {
-      return preferred;
-    }
-  }
-  if (available.length > 0) return available[0];
-  throw new Error('No generateContent models available for this API key.');
-}
-
 async function callGeminiChat(systemPrompt, userText) {
   if (!apiKey) throw new Error('No API key set — use Config to add your Gemini key');
 
-  if (!chatModel) {
-    chatModel = await resolveChatModel();
-  }
+  const PRIMARY = 'gemini-2.5-flash-lite-latest';
+  const FALLBACKS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
-  const isOAuth = apiKey.startsWith('AQ.');
-  const chatUrl = isOAuth
-    ? `https://generativelanguage.googleapis.com/v1beta/models/${chatModel}:generateContent`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${chatModel}:generateContent?key=${apiKey}`;
-  const chatHeaders = { 'Content-Type': 'application/json' };
-  if (isOAuth) chatHeaders['Authorization'] = `Bearer ${apiKey}`;
-
-  const res = await fetch(chatUrl, {
-    method: 'POST',
-    headers: chatHeaders,
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: userText }] }],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-    }),
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: userText }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
   });
 
+  // Try primary model first
+  if (!chatModel) chatModel = PRIMARY;
+
+  const tryModel = async (model) => {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+    );
+    return res;
+  };
+
+  let res = await tryModel(chatModel);
+
+  // On 404 the model isn't available for this key — try fallbacks
+  if (res.status === 404) {
+    for (const fb of FALLBACKS) {
+      if (fb === chatModel) continue;
+      res = await tryModel(fb);
+      if (res.ok || res.status !== 404) { chatModel = fb; break; }
+    }
+  }
+
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) throw new Error('API key rejected. Check it at aistudio.google.com');
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 400 || res.status === 401 || res.status === 403) {
+      throw new Error('API key rejected — paste a fresh key from aistudio.google.com into Config');
+    }
     if (res.status === 429) throw new Error('Rate limit reached. Wait a moment and try again.');
-    throw new Error(`Gemini error ${res.status}`);
+    throw new Error(err?.error?.message || `Gemini error ${res.status}`);
   }
 
   const data = await res.json();
