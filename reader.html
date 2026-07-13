@@ -1160,12 +1160,16 @@ const CHAT_MODEL_PREFERENCE = [
 ];
 
 async function resolveChatModel() {
-  // Call the ListModels endpoint to get what this key actually has access to.
-  // This is more reliable than probing a hardcoded list that goes stale.
-  const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`,
-    { method: 'GET' }
-  );
+  // AQ. keys are OAuth-style and need Authorization: Bearer header.
+  // AIza. keys use the ?key= query param. Support both.
+  const isOAuth = apiKey.startsWith('AQ.');
+  const headers = {};
+  if (isOAuth) headers['Authorization'] = `Bearer ${apiKey}`;
+  const url = isOAuth
+    ? 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100'
+    : `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`;
+
+  const r = await fetch(url, { method: 'GET', headers });
   if (r.status === 401 || r.status === 403) {
     throw new Error('API key rejected. Get a valid key at aistudio.google.com');
   }
@@ -1177,13 +1181,11 @@ async function resolveChatModel() {
     .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
     .map(m => m.name.replace('models/', ''));
 
-  // Pick the first model from our preference list that's actually available
   for (const preferred of CHAT_MODEL_PREFERENCE) {
     if (available.some(a => a === preferred || a.startsWith(preferred))) {
       return preferred;
     }
   }
-  // Fall back to the first available generateContent model
   if (available.length > 0) return available[0];
   throw new Error('No generateContent models available for this API key.');
 }
@@ -1195,18 +1197,22 @@ async function callGeminiChat(systemPrompt, userText) {
     chatModel = await resolveChatModel();
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${chatModel}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: userText }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-      }),
-    }
-  );
+  const isOAuth = apiKey.startsWith('AQ.');
+  const chatUrl = isOAuth
+    ? `https://generativelanguage.googleapis.com/v1beta/models/${chatModel}:generateContent`
+    : `https://generativelanguage.googleapis.com/v1beta/models/${chatModel}:generateContent?key=${apiKey}`;
+  const chatHeaders = { 'Content-Type': 'application/json' };
+  if (isOAuth) chatHeaders['Authorization'] = `Bearer ${apiKey}`;
+
+  const res = await fetch(chatUrl, {
+    method: 'POST',
+    headers: chatHeaders,
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: userText }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+    }),
+  });
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) throw new Error('API key rejected. Check it at aistudio.google.com');
