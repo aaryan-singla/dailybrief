@@ -420,7 +420,18 @@ const STORE = {
   EDITIONS: 'mb2_editions',
 };
 
+// Migrate key from old storage name if present
+(function migrateOldKey() {
+  const oldKey = localStorage.getItem('mb2_gemini_key');
+  if (oldKey && !localStorage.getItem(STORE.KEY)) {
+    localStorage.setItem(STORE.KEY, oldKey);
+  }
+  // Always clear the old key so it can't cause confusion
+  localStorage.removeItem('mb2_gemini_key');
+})();
+
 let apiKey     = localStorage.getItem(STORE.KEY) || '';
+let chatModel  = null;
 let allArticles = [];
 let briefDate  = '';
 let activeCat  = 'ALL';
@@ -1147,7 +1158,6 @@ const CHAT_MODEL_PREFERENCE = [
   'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
 ];
-let chatModel = null;
 
 async function resolveChatModel() {
   // Call the ListModels endpoint to get what this key actually has access to.
