@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DailyBrief - Today's Brief</title>
+<title>DailyBrief — Today's Brief</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -1587,6 +1587,15 @@ async function switchToEdition(key) {
     document.querySelector(`#edition-switcher button[onclick="switchToEdition('${key}')"]`)?.classList.add('active');
   }
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showApp() {
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('progress-screen').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('app-layout').style.display = 'flex';
+  showView('today');
+  renderArticles();
 }
 
 async function initLoad() {
