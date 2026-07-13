@@ -136,8 +136,18 @@ tr:last-child td{border-bottom:none}
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// Catch unhandled errors and show in log
+window.addEventListener('unhandledrejection', e => {
+  const el = document.getElementById('proc-log');
+  if(el) el.innerHTML += `UNHANDLED ERROR: ${e.reason?.message || e.reason}\n`;
+  console.error('Unhandled:', e.reason);
+});
+
 const { createClient } = supabase;
-const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey);
+const sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey, {
+  auth: { persistSession: false },
+  global: { headers: { 'X-Client-Info': 'dailybrief-admin' } }
+});
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 function login() {
@@ -158,6 +168,7 @@ function showAdmin() {
   document.getElementById('logout-btn').style.display = 'block';
   const gk = localStorage.getItem('db_admin_gemini') || '';
   document.getElementById('gemini-inp').value = gk;
+  testSupabaseConnection();
   loadStats();
   loadEditions();
 }
@@ -267,7 +278,16 @@ async function callGemini(systemPrompt, parts, asJson=true) {
   });
 
   if (!res.ok) {
-    if (res.status===429) { await new Promise(r=>setTimeout(r,61000)); return callGemini(systemPrompt,parts,asJson); }
+    if (res.status===429) {
+      log('Rate limited (429) — waiting 60s...');
+      await new Promise(r=>setTimeout(r,61000));
+      return callGemini(systemPrompt,parts,asJson);
+    }
+    if (res.status===503 || res.status===500) {
+      log(`Server error (${res.status}) — waiting 20s then retrying...`);
+      await new Promise(r=>setTimeout(r,20000));
+      return callGemini(systemPrompt,parts,asJson);
+    }
     throw new Error(`Gemini error ${res.status}`);
   }
   const data = await res.json();
@@ -321,10 +341,13 @@ async function processOnePDF(file, allArticles, detectedDate) {
       seen.add(key);
       discovered.push({...a,_start:s,_end:Math.min(s+BATCH,images.length)});
     }
-    if(s+(BATCH-OVERLAP)<images.length) await new Promise(r=>setTimeout(r,2500));
+    if(s+(BATCH-OVERLAP)<images.length) await new Promise(r=>setTimeout(r,4000));
   }
   log(`Discovery: ${discovered.length} articles found`);
   if(!detectedDate.value&&date) detectedDate.value=date;
+  // Pause before enrichment to avoid rate limiting
+  log('Pausing 10s before enrichment...');
+  await new Promise(r=>setTimeout(r,10000));
 
   const ENRICH=3, totalG=Math.ceil(discovered.length/ENRICH);
   for(let g=0;g<discovered.length;g+=ENRICH){
@@ -341,7 +364,7 @@ async function processOnePDF(file, allArticles, detectedDate) {
       const r=arr[i]||{};
       allArticles.push({headline:group[i].headline,byline:group[i].byline||'',category:group[i].category||'CORPORATE',importance:parseInt(r.importance)||3,brief:r.brief||'',body:r.body||'',source:file.name.replace('.pdf','')});
     }
-    if(g+ENRICH<discovered.length) await new Promise(r=>setTimeout(r,2500));
+    if(g+ENRICH<discovered.length) await new Promise(r=>setTimeout(r,5000)); // 5s between enrichment calls
   }
   log(`Enrichment done: ${discovered.length} articles`);
 }
@@ -388,20 +411,42 @@ async function startProcessing() {
     setProc('Saving to database…',92,`${deduped.length} articles`);
     log(`\nSaving ${deduped.length} articles to Supabase…`);
 
-    // Upsert edition
-    const {data:ed,error:edErr}=await sb.from('editions').upsert({date_key:dateKey,display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))},{onConflict:'date_key'}).select().single();
-    if(edErr) throw new Error('Edition save failed: '+edErr.message);
-    log(`Edition saved: ${dateKey}`);
-
-    // Delete old articles
-    await sb.from('articles').delete().eq('edition_id',ed.id);
+    // Try to find existing edition first, then insert or update
+    const {data:existingEd} = await sb.from('editions').select('id').eq('date_key',dateKey).maybeSingle();
+    let ed;
+    if(existingEd?.id) {
+      // Update existing
+      const {data:updEd,error:updErr} = await sb.from('editions')
+        .update({display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))})
+        .eq('date_key',dateKey).select().single();
+      if(updErr) throw new Error('Edition update failed: '+updErr.message);
+      ed = updEd;
+      // Delete old articles for this edition
+      await sb.from('articles').delete().eq('edition_id',ed.id);
+      log(`Updating existing edition: ${dateKey}`);
+    } else {
+      // Insert new
+      const {data:newEd,error:insErr} = await sb.from('editions')
+        .insert({date_key:dateKey,display_date:displayDate,article_count:deduped.length,sources:selectedFiles.map(f=>f.name.replace('.pdf',''))})
+        .select().single();
+      if(insErr) throw new Error('Edition save failed: '+insErr.message);
+      ed = newEd;
+      log(`New edition created: ${dateKey}`);
+    }
 
     // Insert articles in chunks
     const CHUNK=50;
     for(let i=0;i<deduped.length;i+=CHUNK){
       const rows=deduped.slice(i,i+CHUNK).map(a=>({edition_id:ed.id,date_key:dateKey,...a}));
-      const {error}=await sb.from('articles').insert(rows);
-      if(error) log(`Warning: chunk ${i}-${i+CHUNK}: ${error.message}`);
+      const {data:insData, error}=await sb.from('articles').insert(rows);
+      if(error) {
+        log(`ERROR chunk ${i}-${i+CHUNK}: ${error.message}`);
+        // Try inserting one by one to identify problem rows
+        for(const row of rows) {
+          const {error:e2} = await sb.from('articles').insert(row);
+          if(e2) log(`  Skip: ${row.headline?.slice(0,40)} — ${e2.message}`);
+        }
+      }
       setProc('Saving articles…',93+Math.round((i/deduped.length)*5),`${Math.min(i+CHUNK,deduped.length)}/${deduped.length} saved`);
     }
 
