@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DailyBrief</title>
+<title>DailyBrief - Today's Brief</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -437,7 +437,7 @@ a{color:var(--accent)}
 
 <!-- ── TOPBAR ── -->
 <div class="topbar" id="topbar" style="display:none">
-  <div style="display:flex;align-items:center;gap:14px"><a href="index.html" style="font-size:12px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px;transition:.15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← All Editions</a><div class="logo">Daily<span>Brief</span></div></div>
+  <div style="display:flex;align-items:center;gap:14px"><a href="index.html" style="font-size:12px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Editions</a><div class="logo">Daily<span>Brief</span></div></div>
   <div class="topbar-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" id="search-inp" placeholder="Search articles, companies, people…" oninput="handleSearch()"/>
@@ -485,12 +485,7 @@ a{color:var(--accent)}
       <button class="nav-item" onclick="filterCat('ENERGY')" id="cat-ENERGY">Energy</button>
       <button class="nav-item" onclick="filterCat('MA')" id="cat-MA">M&amp;A / IPO</button>
     </div>
-    <div class="sidebar-section" style="padding:12px 16px 0;border-top:1px solid var(--border);margin-top:8px">
-      <button class="icon-btn" style="width:100%;justify-content:center;font-size:12px" onclick="resetApp()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        New Edition
-      </button>
-    </div>
+
   </div>
 
   <div class="main">
@@ -546,7 +541,7 @@ a{color:var(--accent)}
 <div id="upload-screen" style="padding:0 16px">
   <div class="upload-hero">
     <h1>Daily<span style="color:var(--accent)">Brief</span></h1>
-    <p>Your personal AI business newspaper reader.<br>Powered by Gemini.</p>
+    <p>Your personal AI business newspaper reader.</p>
   </div>
   <div class="err on" id="upload-err" style="display:none"></div>
   <div class="api-panel" id="upload-api-panel">
@@ -567,8 +562,8 @@ a{color:var(--accent)}
         <polyline points="9 15 12 12 15 15"/>
       </svg>
     </div>
-    <div class="drop-title">No editions available yet</div>
-    <div class="drop-sub">The admin will publish today's brief shortly</div>
+    <div class="drop-title">Today's brief isn't ready yet</div>
+    <div class="drop-sub">Check back shortly — usually published by 8 AM</div>
   </div>
 </div>
 
@@ -712,7 +707,7 @@ async function pdfToImages(file, onProgress) {
 // ════════════════════════════════════════════════════════════════════════════
 // MODULE: AI Communication (Gemini 2.5 Flash)
 // ════════════════════════════════════════════════════════════════════════════
-const GEMINI_MODEL = 'gemini-2.5-flash'; // primary model
+const GEMINI_MODEL = 'gemini-2.5-flash-lite-latest'; // falls back gracefully
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 async function callGemini(systemPrompt, userContent, isJson = true) {
@@ -740,7 +735,7 @@ async function callGemini(systemPrompt, userContent, isJson = true) {
     }
     if (res.status === 404) {
       // Model not available — try gemini-3.5-flash then gemini-2.5-flash-lite
-      const fallbacks = ['gemini-3.5-flash', 'gemini-2.5-flash-lite', ];
+      const fallbacks = ['gemini-3.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
       for (const fb of fallbacks) {
         const fbRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${fb}:generateContent?key=${apiKey}`,
@@ -1541,87 +1536,26 @@ document.getElementById('cfg-key-inp').addEventListener('keydown', e => { if(e.k
 
 document.getElementById('chat-inp').addEventListener('keydown', e => { if(e.key==='Enter') chatSend(); });
 
-// ── Supabase client ──────────────────────────────────────────────────────
-const { createClient } = supabase;
-const _sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey);
-let _sessionId = localStorage.getItem('db_session_id') || (() => {
-  const id = crypto.randomUUID(); localStorage.setItem('db_session_id', id); return id;
-})();
 
-// ── Load from Supabase ────────────────────────────────────────────────────
+// ── Supabase client ────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const _sb = createClient(DAILYBRIEF_CONFIG.supabaseUrl, DAILYBRIEF_CONFIG.supabaseAnonKey, {
+  auth: { persistSession: false }
+});
+
 async function loadFromSupabase(dateKey) {
   const { data, error } = await _sb.from('articles').select('*').eq('date_key', dateKey).order('importance', { ascending: true });
   if (error || !data?.length) return false;
   allArticles = data;
   const { data: ed } = await _sb.from('editions').select('*').eq('date_key', dateKey).single();
   briefDate = ed?.display_date || dateKey;
+  savedSet = getSavedHeadlines();
   return true;
 }
 
 async function loadEditionsFromSupabase() {
   const { data } = await _sb.from('editions').select('*').order('date_key', { ascending: false }).limit(14);
   return data || [];
-}
-
-function showApp() {
-  document.getElementById('upload-screen').style.display = 'none';
-  document.getElementById('progress-screen').style.display = 'none';
-  document.getElementById('topbar').style.display = 'flex';
-  document.getElementById('app-layout').style.display = 'flex';
-  showView('today');
-  renderArticles();
-}
-
-async function initLoad() {
-  // Read ?edition= from URL — set by index.html when user clicks an edition
-  const params = new URLSearchParams(window.location.search);
-  const urlKey = params.get('edition');
-
-  // Show loading skeleton
-  document.getElementById('upload-screen').style.display = 'none';
-  document.getElementById('topbar').style.display = 'flex';
-  document.getElementById('app-layout').style.display = 'flex';
-  document.getElementById('articles-container').innerHTML = '<div style="display:flex;flex-direction:column;gap:10px"><div style="height:120px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite"></div><div style="height:100px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite;opacity:.7"></div><div style="height:90px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite;opacity:.5"></div></div>';
-
-  // Load requested edition or latest
-  let loaded = false;
-  if (urlKey) {
-    loaded = await loadFromSupabase(urlKey);
-  }
-  if (!loaded) {
-    // Load latest edition from Supabase
-    const editions = await loadEditionsFromSupabase();
-    if (editions.length) {
-      loaded = await loadFromSupabase(editions[0].date_key);
-      // Update URL so refresh works
-      if (loaded) history.replaceState(null, '', `?edition=${editions[0].date_key}`);
-    }
-  }
-
-  if (!loaded) {
-    // Nothing in DB — check local storage fallback
-    try {
-      const cached = localStorage.getItem(STORE.ARTICLES);
-      if (cached) {
-        const arts = JSON.parse(cached);
-        if (arts?.length) {
-          allArticles = arts;
-          briefDate = localStorage.getItem(STORE.DATE) || '';
-          loaded = true;
-        }
-      }
-    } catch {}
-  }
-
-  if (loaded) {
-    showApp();
-    await renderEditionSwitcherFromDB();
-  } else {
-    // Nothing at all — show upload screen for admin use
-    document.getElementById('topbar').style.display = 'none';
-    document.getElementById('app-layout').style.display = 'none';
-    document.getElementById('upload-screen').style.display = 'block';
-  }
 }
 
 async function renderEditionSwitcherFromDB() {
@@ -1633,12 +1567,12 @@ async function renderEditionSwitcherFromDB() {
   const div = document.createElement('div');
   div.id = 'edition-switcher';
   div.className = 'sidebar-section';
-  div.innerHTML = '<div class="sl">Archive</div>' +
+  div.innerHTML = '<div class="sidebar-label">Archive</div>' +
     editions.map(ed => {
       const d = new Date(ed.date_key);
       const lbl = isNaN(d) ? ed.date_key : d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
       const active = ed.date_key === currentKey;
-      return `<button class="ni${active?' active':''}" onclick="switchToEdition('${ed.date_key}')">${lbl} <span class="badge">${ed.article_count}</span></button>`;
+      return `<button class="nav-item${active?' active':''}" onclick="switchToEdition('${ed.date_key}')">${lbl} <span class="badge">${ed.article_count}</span></button>`;
     }).join('');
   sidebar.appendChild(div);
 }
@@ -1649,49 +1583,71 @@ async function switchToEdition(key) {
   const ok = await loadFromSupabase(key);
   if (ok) {
     renderArticles();
-    document.querySelectorAll('#edition-switcher .ni').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#edition-switcher .nav-item').forEach(el => el.classList.remove('active'));
     document.querySelector(`#edition-switcher button[onclick="switchToEdition('${key}')"]`)?.classList.add('active');
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// ── Edition switcher in sidebar ──────────────────────────────────────────
-function renderEditionSwitcher() {
-  const editions = getEditionDates();
-  if (editions.length <= 1) return; // only show switcher if there's more than one
+async function initLoad() {
+  const params = new URLSearchParams(window.location.search);
+  const urlKey = params.get('edition');
 
-  // Add a section to the sidebar for archive
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar || document.getElementById('edition-switcher')) return;
+  // Show skeleton while loading
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('app-layout').style.display = 'flex';
+  document.getElementById('articles-container').innerHTML = '<div style="display:flex;flex-direction:column;gap:10px"><div style="height:120px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite"></div><div style="height:100px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite;opacity:.7"></div><div style="height:90px;background:var(--surface2);border-radius:12px;animation:pulse 1.8s ease infinite;opacity:.5"></div></div>';
 
-  const div = document.createElement('div');
-  div.id = 'edition-switcher';
-  div.className = 'sidebar-section';
-  div.innerHTML = `<div class="sidebar-label">Archive</div>` +
-    editions.map(ed => {
-      const d = new Date(ed.dateKey);
-      const label = isNaN(d) ? ed.dateKey : d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-      const isActive = ed.date === briefDate || ed.dateKey === dateToKey(briefDate);
-      return `<button class="nav-item${isActive?' active':''}" onclick="switchEdition('${ed.dateKey}')">${label} <span class="badge">${ed.count}</span></button>`;
-    }).join('');
-  sidebar.appendChild(div);
-}
+  let loaded = false;
 
-function switchEdition(key) {
-  if (!loadEditionByKey(key)) { showToast('Edition not found'); return; }
-  renderArticles();
-  // Update switcher active state
-  document.querySelectorAll('#edition-switcher .nav-item').forEach(el => el.classList.remove('active'));
-  const btn = document.querySelector(`#edition-switcher button[onclick="switchEdition('${key}')"]`);
-  if (btn) btn.classList.add('active');
-  showToast('Switched to ' + briefDate);
-  // scroll to top
-  window.scrollTo({top:0,behavior:'smooth'});
+  // Try Supabase first
+  try {
+    if (urlKey) {
+      loaded = await loadFromSupabase(urlKey);
+    }
+    if (!loaded) {
+      const editions = await loadEditionsFromSupabase();
+      if (editions.length) {
+        loaded = await loadFromSupabase(editions[0].date_key);
+        if (loaded) history.replaceState(null, '', `?edition=${editions[0].date_key}`);
+      }
+    }
+  } catch(e) {
+    console.warn('Supabase load failed:', e.message);
+  }
+
+  // Fall back to localStorage
+  if (!loaded) {
+    try {
+      const cached = localStorage.getItem(STORE.ARTICLES);
+      if (cached) {
+        const arts = JSON.parse(cached);
+        if (arts?.length) {
+          allArticles = arts;
+          briefDate = localStorage.getItem(STORE.DATE) || '';
+          savedSet = getSavedHeadlines();
+          loaded = true;
+        }
+      }
+    } catch {}
+  }
+
+  if (loaded) {
+    showApp();
+    await renderEditionSwitcherFromDB();
+  } else {
+    // Nothing found — show waiting screen
+    document.getElementById('topbar').style.display = 'none';
+    document.getElementById('app-layout').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'block';
+  }
 }
 
 updateKeyUI();
 updateSidebarBadge('saved', loadSaved().length);
-initLoad();  // async — loads from Supabase
+initLoad();
+
 </script>
 </body>
 </html>
