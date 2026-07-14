@@ -288,10 +288,17 @@ async function sha256(text) {
 // Expose for first-time setup via browser console
 window.DailyBriefAdmin = {
   async setPassword(pw) {
+    // Block if a password is already set — prevents anyone hijacking the admin
+    if (localStorage.getItem(AUTH_HASH_KEY)) {
+      console.error('A password is already set. To reset it, you must first clear the existing hash:\nlocalStorage.removeItem(\'db_auth_hash_v2\')\nThen call setPassword() again.');
+      return;
+    }
     if (!pw || pw.length < 8) { console.error('Password must be at least 8 characters.'); return; }
     const hash = await sha256(pw);
     localStorage.setItem(AUTH_HASH_KEY, hash);
-    console.log('Admin password set successfully. You can now log in.');
+    console.log('Admin password set. This function is now locked until the hash is cleared.');
+    // Remove the global so it cannot be called again this session
+    delete window.DailyBriefAdmin;
   }
 };
 
@@ -444,7 +451,7 @@ function getGKey() {
 // Stats
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadStats() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const [e, a, t] = await Promise.all([
     sb.from('editions').select('*', { count: 'exact', head: true }),
     sb.from('articles').select('*', { count: 'exact', head: true }),
@@ -1381,15 +1388,22 @@ async function processOnePDF(file, allArticles, detectedDate) {
     try {
       const enriched = await enrichOne(a, articleImages);
       if (!enriched.found) {
-        log(`  Not found: "${a.headline.slice(0, 50)}" — keeping stub`);
+        log(`  Not found in images: "${a.headline.slice(0, 50)}" — saving headline only`);
+        // Keep the headline even if body/brief empty — better than losing the article
+        allArticles.push({
+          headline: a.headline, byline: a.byline || '', category: 'CORPORATE',
+          brief: '', body: '', source: a._source, found: false,
+          _imageIdxs: imageIdxs, _pageStart: a._pageStart, _pageEnd: a._pageEnd,
+        });
+      } else {
+        allArticles.push({
+          ...enriched,
+          source:      a._source,
+          _imageIdxs:  imageIdxs,
+          _pageStart:  a._pageStart,
+          _pageEnd:    a._pageEnd,
+        });
       }
-      allArticles.push({
-        ...enriched,
-        source:      a._source,
-        _imageIdxs:  imageIdxs,
-        _pageStart:  a._pageStart,
-        _pageEnd:    a._pageEnd,
-      });
     } catch (e) {
       log(`  Enrich failed: "${a.headline.slice(0, 45)}" — ${e.message}`);
       allArticles.push({
@@ -1461,11 +1475,11 @@ async function startProcessing() {
     setProc('Saving to database…', 90, `${verified.length} articles`);
 
     // Parse date
-    let dateKey = new Date().toISOString().slice(0, 10);
+    let dateKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
     let displayDate = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const parsedDate = parsePaperDate(detectedDate.value);
     if (parsedDate) {
-      dateKey = parsedDate.toISOString().slice(0, 10);
+      dateKey = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth()+1).padStart(2,'0')}-${String(parsedDate.getDate()).padStart(2,'0')}`;
       displayDate = parsedDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
     log(`\nDate: ${displayDate} (${dateKey})`);
@@ -1492,11 +1506,15 @@ async function startProcessing() {
       log('New edition created…');
     }
 
+    // Filter out articles with no headline before saving
+    const toSave = verified.filter(a => a.headline && a.headline.trim().length > 0);
+    log(`Saving ${toSave.length} articles (${verified.length - toSave.length} empty stubs skipped)…`);
+
     // Insert articles in chunks of 25
     const CHUNK = 25;
     let saved = 0;
-    for (let i = 0; i < verified.length; i += CHUNK) {
-      const rows = verified.slice(i, i + CHUNK).map(a => ({
+    for (let i = 0; i < toSave.length; i += CHUNK) {
+      const rows = toSave.slice(i, i + CHUNK).map(a => ({
         edition_id:      ed.id,
         date_key:        dateKey,
         headline:        a.headline,
@@ -1510,19 +1528,21 @@ async function startProcessing() {
         rank_rationale:  a.rank_rationale || '',
       }));
 
+      log(`  Inserting rows ${i+1}–${Math.min(i+CHUNK, toSave.length)}…`);
       const { error } = await sb.from('articles').insert(rows);
       if (error) {
-        log(`Chunk ${i}–${i + CHUNK} insert error: ${error.message}`);
+        log(`  Chunk insert error: ${error.message}`);
         // Fall back to row-by-row to maximise save rate
         for (const row of rows) {
           const { error: e2 } = await sb.from('articles').insert(row);
-          if (e2) log(`  Skip "${row.headline?.slice(0, 40)}": ${e2.message}`);
+          if (e2) log(`    Skip "${row.headline?.slice(0, 40)}": ${e2.message}`);
           else saved++;
         }
       } else {
         saved += rows.length;
+        log(`  Saved ${saved} so far…`);
       }
-      setProc('Saving articles…', 90 + Math.round((i / verified.length) * 9), `${Math.min(i + CHUNK, verified.length)}/${verified.length} saved`);
+      setProc('Saving articles…', 90 + Math.round((i / toSave.length) * 9), `${Math.min(i + CHUNK, toSave.length)}/${toSave.length} saved`);
     }
 
     // Update final count
