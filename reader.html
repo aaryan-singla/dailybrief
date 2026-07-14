@@ -26,6 +26,38 @@
   --shadow2:0 8px 32px rgba(25,24,23,.14),0 2px 8px rgba(25,24,23,.08);
   --ease:cubic-bezier(.25,.7,.3,1);
 }
+
+/* ── THEME OVERRIDES — explicit toggle beats media query ── */
+[data-theme="light"]:root,
+[data-theme="light"] :root {
+  --bg:#faf9f7;--surface:#ffffff;--surface2:#f3f1ec;
+  --border:#e8e5de;--border2:#d5d1c6;
+  --text:#191817;--sub:#55524a;--muted:#8e8a7e;
+  --accent:#9b1c2e;--accent-bg:#fdf0f2;--accent-sub:#7a1524;
+  --green:#1a6e3c;--green-bg:#eefaf2;
+  --shadow:0 1px 2px rgba(25,24,23,.05),0 2px 8px rgba(25,24,23,.04);
+  --shadow2:0 8px 32px rgba(25,24,23,.14),0 2px 8px rgba(25,24,23,.08);
+}
+[data-theme="dark"]:root,
+[data-theme="dark"] :root {
+  --bg:#131211;--surface:#1c1b19;--surface2:#242220;
+  --border:#2f2d29;--border2:#403d36;
+  --text:#f2efe8;--sub:#b3afa4;--muted:#767268;
+  --accent:#e0334d;--accent-bg:#2c0e15;--accent-sub:#f0556e;
+  --green:#54d488;--green-bg:#0a2416;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 2px 8px rgba(0,0,0,.25);
+  --shadow2:0 8px 32px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.3);
+}
+
+/* ── THEME TOGGLE BUTTON ── */
+.theme-toggle{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;color:var(--sub);
+  transition:all .18s var(--ease);flex-shrink:0;
+}
+.theme-toggle:hover{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+
 @media(prefers-color-scheme:dark){:root{
   --bg:#131211;--surface:#1c1b19;--surface2:#242220;
   --border:#2f2d29;--border2:#403d36;
@@ -267,6 +299,25 @@ a{color:var(--accent)}
   .toast{bottom:calc(70px + env(safe-area-inset-bottom))}
 }
 </style>
+
+<!-- ── ANALYTICS ── -->
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QEKW1Z98RM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QEKW1Z98RM');
+</script>
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xmbgjyoqdg");
+</script>
+<script src="theme.js"></script>
 </head>
 <body>
 
@@ -285,6 +336,7 @@ a{color:var(--accent)}
       <span class="dot" id="key-dot" aria-hidden="true"></span>
       <span id="key-lbl">No key</span>
     </span>
+    <button class="theme-toggle" onclick="dbToggleTheme()" aria-label="Switch to light mode" title="Light mode"><span class="theme-icon">☀</span></button>
     <button class="icon-btn" onclick="toggleCfg()" aria-expanded="false" aria-controls="cfg-panel" id="cfg-toggle">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       Config
@@ -388,7 +440,7 @@ a{color:var(--accent)}
   <div class="waiting-icon" aria-hidden="true">📰</div>
   <div class="waiting-title">Today's brief isn't ready yet</div>
   <p class="waiting-sub">Check back shortly — the brief is usually published by 8 AM.</p>
-  <div class="waiting-badge">IIM Shillong · Business News</div>
+  
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -635,7 +687,7 @@ function renderArticles(searchTerm = '') {
 
   // Update header — textContent only, never innerHTML
   header.style.display = 'block';
-  kicker.textContent = 'DailyBrief — ' + (briefDate || 'Today');
+  kicker.textContent = briefDate || 'Today';
   titleEl.textContent = "Today's Business Brief";
   const critical = allArticles.filter(a => parseInt(a.importance) <= 2).length;
   // Build meta row via DOM
@@ -643,7 +695,7 @@ function renderArticles(searchTerm = '') {
   const parts = [
     `${allArticles.length} articles`,
     `${critical} priority`,
-    `Powered by Gemini`,
+
   ];
   parts.forEach((p, i) => {
     const span = document.createElement('span');
@@ -1427,6 +1479,7 @@ document.querySelectorAll('.nav-item[id^="cat-"]').forEach(btn => {
   });
 });
 
+dbInitThemeBtn();
 updateKeyUI();
 updateSidebarBadge('saved', loadSaved().length);
 initLoad();
