@@ -255,12 +255,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH — Google Identity Services (GSI)
-// Only aaryansingla005@gmail.com can access admin.
+// Only the authorised Google account can access admin.
 // Google verifies the identity — we verify the email on the returned JWT.
 // No passwords, no hashes, nothing stored except a session flag.
 // ─────────────────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID   = '423697873027-lvgkjquchciu5aome085iagh67gfmq8b.apps.googleusercontent.com';
-const ALLOWED_EMAIL      = 'aaryansingla005@gmail.com';
+const ALLOWED_EMAIL_HASH = '6b0c33bfb69ae5352609c0eb25aa3bf6439a1d082d50793b1544dfbdfc4a820f'; // SHA-256 of authorised email
 const SESSION_KEY        = 'db_admin_gsi_v1';
 
 function parseJwtPayload(token) {
@@ -274,9 +274,8 @@ function isLoggedIn() {
   const s = sessionStorage.getItem(SESSION_KEY);
   if (!s) return false;
   try {
-    const { email, exp } = JSON.parse(s);
-    // Validate email and expiry
-    if (email !== ALLOWED_EMAIL) return false;
+    const { hash, exp } = JSON.parse(s);
+    if (hash !== ALLOWED_EMAIL_HASH) return false;
     if (exp && Date.now() / 1000 > exp) { sessionStorage.removeItem(SESSION_KEY); return false; }
     return true;
   } catch { return false; }
@@ -285,7 +284,7 @@ function isLoggedIn() {
 function logout() {
   sessionStorage.removeItem(SESSION_KEY);
   // Revoke Google session so they must re-authenticate
-  if (window.google?.accounts?.id) google.accounts.id.revoke(ALLOWED_EMAIL, () => {});
+  if (window.google?.accounts?.id) google.accounts.id.revoke('', () => {});
   location.reload();
 }
 
@@ -310,15 +309,18 @@ function showAuthError(msg) {
 }
 
 // Called by Google GSI after user selects account
-function onGoogleCredential(response) {
+async function onGoogleCredential(response) {
   const payload = parseJwtPayload(response.credential);
   if (!payload) { showAuthError('Could not verify your identity. Try again.'); return; }
-  if (payload.email !== ALLOWED_EMAIL) {
-    showAuthError(`Access denied. This admin is restricted to ${ALLOWED_EMAIL}.`);
+  const encoder2 = new TextEncoder();
+  const emailBuf2 = await crypto.subtle.digest('SHA-256', encoder2.encode(payload.email));
+  const emailHash2 = Array.from(new Uint8Array(emailBuf2)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if (emailHash2 !== ALLOWED_EMAIL_HASH) {
+    showAuthError('Access denied. Unauthorised account.');
     return;
   }
-  // Store email + token expiry in sessionStorage (cleared on tab close)
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: payload.email, exp: payload.exp }));
+  // Store hash + expiry in sessionStorage — never store plaintext email
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ hash: emailHash, exp: payload.exp }));
   showAdmin();
 }
 
