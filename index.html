@@ -24,6 +24,30 @@
   --ease:cubic-bezier(.25,.7,.3,1);
   --r:8px;--r2:14px;
 }
+
+/* ── THEME OVERRIDES ── */
+[data-theme="light"]:root,
+[data-theme="light"] :root {
+  --bg:#faf9f7;--surface:#fff;--surface2:#f3f1ec;
+  --border:#e8e5de;--border2:#d5d1c6;
+  --text:#191817;--sub:#55524a;--muted:#8e8a7e;
+  --accent:#9b1c2e;--accent-bg:#fdf0f2;--accent-sub:#7a1524;
+}
+[data-theme="dark"]:root,
+[data-theme="dark"] :root {
+  --bg:#131211;--surface:#1c1b19;--surface2:#242220;
+  --border:#2f2d29;--border2:#403d36;
+  --text:#f2efe8;--sub:#b3afa4;--muted:#767268;
+  --accent:#e0334d;--accent-bg:#2c0e15;--accent-sub:#f0556e;
+}
+.theme-toggle{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;color:var(--sub);
+  transition:all .18s;flex-shrink:0;
+}
+.theme-toggle:hover{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+
 @media(prefers-color-scheme:dark){:root{
   --bg:#131211;--surface:#1c1b19;--surface2:#242220;
   --border:#2f2d29;--border2:#403d36;
@@ -199,17 +223,37 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .hero-sub{font-size:14.5px}
 }
 </style>
+
+<!-- ── ANALYTICS ── -->
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QEKW1Z98RM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QEKW1Z98RM');
+</script>
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xmbgjyoqdg");
+</script>
+<script src="theme.js"></script>
 </head>
 <body>
 
 <div class="topbar" role="banner">
   <a href="index.html" class="logo" aria-label="DailyBrief home">Daily<span>Brief</span></a>
+  <button class="theme-toggle" onclick="dbToggleTheme()" aria-label="Switch to light mode" title="Light mode"><span class="theme-icon">☀</span></button>
 </div>
 
 <main>
   <div class="hero" role="region" aria-label="Overview">
     <div class="hero-inner">
-      <div class="hero-eyebrow" aria-hidden="true">For IIM Shillong</div>
+      
       <h1 class="hero-hed">Business news.<br><em>Read in minutes.</em></h1>
       <p class="hero-sub">Every relevant article from today's business newspapers, extracted, ranked by importance, and ready to read.</p>
       <div class="hero-stats" aria-label="Statistics">
@@ -245,7 +289,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <footer class="footer" role="contentinfo">
   <div class="footer-logo">Daily<span>Brief</span></div>
-  <div class="footer-note">Powered by Gemini · IIM Shillong</div>
+  
 </footer>
 
 <script>
@@ -351,14 +395,7 @@ function buildFeaturedCard(ed) {
   artCount.textContent = `${ed.article_count} articles`;
   meta.append(artCount);
 
-  if (Array.isArray(ed.sources) && ed.sources.length) {
-    const div = document.createElement('span');
-    div.className = 'ef-meta-div';
-    div.textContent = '·';
-    const src = document.createElement('span');
-    src.textContent = ed.sources.join(', ');
-    meta.append(div, src);
-  }
+
 
   // Published time
   if (ed.published_at) {
@@ -435,12 +472,7 @@ function buildArchiveCard(ed) {
   countBadge.textContent = `${ed.article_count} articles`;
   metaRow.append(countBadge);
 
-  if (Array.isArray(ed.sources) && ed.sources.length) {
-    const src = document.createElement('span');
-    src.className = 'ec-source';
-    src.textContent = ed.sources.join(' · ');
-    metaRow.append(src);
-  }
+
 
   const arrow = document.createElement('span');
   arrow.className = 'ec-arrow';
@@ -461,7 +493,7 @@ async function loadData() {
 
   try {
     // Run all three queries concurrently
-    const today = new Date().toISOString().slice(0, 10);
+    const _now = new Date(); const today = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
     const [editionsRes, totalArticlesRes, todayArticlesRes] = await Promise.all([
       sb.from('editions').select('*').order('date_key', { ascending: false }).limit(30),
       sb.from('articles').select('*', { count: 'exact', head: true }),
@@ -489,7 +521,7 @@ async function loadData() {
       return;
     }
 
-    sub.textContent = `${editions.length} edition${editions.length > 1 ? 's' : ''} — click any to read`;
+    sub.textContent = `${editions.length} edition${editions.length > 1 ? 's' : ''} available`;
 
     grid.innerHTML = '';
     grid.append(buildFeaturedCard(editions[0]));
@@ -516,6 +548,7 @@ async function loadData() {
   }
 }
 
+dbInitThemeBtn();
 loadData();
 </script>
 </body>
