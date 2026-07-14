@@ -674,7 +674,7 @@ async function callGemini(systemPrompt, parts, opts = {}) {
     systemInstruction: { parts: [{ text: systemPrompt }] },
     generationConfig: {
       temperature,
-      maxOutputTokens: 65536,
+      maxOutputTokens: 8192,
       ...(asJson ? { responseMimeType: 'application/json' } : {}),
     },
   };
@@ -688,10 +688,17 @@ async function callGemini(systemPrompt, parts, opts = {}) {
     }
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${gkey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-      );
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
+      let res;
+      try {
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${gkey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal }
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (res.status === 429) {
         const retryAfter = parseInt(res.headers.get('Retry-After') || '60');
@@ -720,6 +727,11 @@ async function callGemini(systemPrompt, parts, opts = {}) {
       return parseJsonSafe(text);
 
     } catch (err) {
+      if (err.name === 'AbortError') {
+        log(`Request timed out after 90s — retrying…`);
+        lastErr = new Error('Request timed out');
+        continue;
+      }
       if (err.message.includes('429') || err.message.includes('Rate')) throw err;
       lastErr = err;
     }
