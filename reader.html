@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content="DailyBrief — Today's business newspaper, extracted and ranked."/>
 <title>DailyBrief</title>
-<link rel="icon" type="image/png" href="favicon.png">
 <!-- pdf.js not loaded here — reader.html is a read-only view; PDF processing lives in admin.html -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -569,7 +568,7 @@ async function loadFromSupabase(dateKey) {
     .from('articles')
     .select('*')
     .eq('date_key', dateKey)
-    .order('importance', { ascending: true });
+    .order('rank_score', { ascending: false, nullsFirst: false });
 
   if (error || !data?.length) return false;
 
@@ -738,10 +737,15 @@ function renderArticles(searchTerm = '') {
     return;
   }
 
-  // Group by tier
-  const tier1 = filtered.filter(a => parseInt(a.importance) <= 2);
-  const tier2 = filtered.filter(a => parseInt(a.importance) === 3);
-  const tier3 = filtered.filter(a => parseInt(a.importance) >= 4);
+  // Sort by rank_score descending — highest score first within each tier
+  filtered.sort((a, b) => (b.rank_score || 0) - (a.rank_score || 0));
+
+  // Group by tier — priority capped at 15, overflow goes into Important
+  const allTier1 = filtered.filter(a => parseInt(a.importance) <= 2);
+  const tier1    = allTier1.slice(0, 15);
+  const overflow = allTier1.slice(15); // priority articles beyond the cap
+  const tier2    = [...overflow, ...filtered.filter(a => parseInt(a.importance) === 3)];
+  const tier3    = filtered.filter(a => parseInt(a.importance) >= 4);
 
   // Build using document fragment for performance
   const frag = document.createDocumentFragment();
