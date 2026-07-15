@@ -1078,12 +1078,13 @@ async function rankArticles(articles) {
       for (let i = 0; i < group.length; i++) {
         const scores   = arr[i] || {};
         const rankScore = computeRankScore(scores);
-        // Map score to importance tier for backward compatibility with reader
+        // Map score to importance tier
+        // Thresholds are deliberately tight — Priority should be rare
         let importance;
-        if (rankScore >= 6.5)      importance = 1;  // Priority
-        else if (rankScore >= 4.5) importance = 2;  // Priority
-        else if (rankScore >= 3.0) importance = 3;  // Important
-        else if (rankScore >= 1.5) importance = 4;  // Also Today
+        if (rankScore >= 7.0)      importance = 1;  // Priority — must-read
+        else if (rankScore >= 5.5) importance = 2;  // Priority — very significant
+        else if (rankScore >= 3.5) importance = 3;  // Important
+        else if (rankScore >= 2.0) importance = 4;  // Also Today
         else                        importance = 5;  // Also Today
 
         ranked[g + i] = {
